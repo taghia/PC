@@ -1,0 +1,184 @@
+#ifndef dargdropH
+#define dargdropH
+// ---------------------------------------------------------------------------
+#include <vcl.h>
+#include <shlobj.h>       // DROPFILES declaration
+#include <vector>
+#include <ole2.h>
+// ---------------------------------------------------------------------------
+using namespace std;
+
+class TDropSource : public IDropSource {
+private:
+	TStringList *m_Files;
+
+	TStringList *GetFiles();
+
+public:
+	DWORD m_dwRef;
+	DWORD m_dwButtonCancel;
+	DWORD m_dwButtonDrop;
+
+	TDropSource();
+	~TDropSource();
+
+	HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject);
+	ULONG STDMETHODCALLTYPE AddRef(void);
+	ULONG STDMETHODCALLTYPE Release(void);
+	HRESULT STDMETHODCALLTYPE QueryContinueDrag(BOOL fEscapePressed,
+		DWORD grfKeyState);
+	HRESULT STDMETHODCALLTYPE GiveFeedback(DWORD dwEffect);
+	__property TStringList *Files = {
+		read = GetFiles
+	};
+	StartDrag();
+};
+
+// ---------------------------------------------------------------------------
+class EnumFORMATETC : public IEnumFORMATETC {
+private:
+	ULONG m_cRefCount;
+	vector<FORMATETC> m_pFmtEtc;
+	UINT m_iCur;
+
+public:
+	EnumFORMATETC(const vector<FORMATETC>& ArrFE);
+	EnumFORMATETC(const vector<FORMATETC*>& ArrFE);
+
+	EnumFORMATETC();
+	void add(const FORMATETC &);
+
+	// IUnknown members
+	STDMETHOD(QueryInterface)(REFIID, void FAR* FAR*);
+	STDMETHOD_(ULONG, AddRef)(void);
+	STDMETHOD_(ULONG, Release)(void);
+
+	// IEnumFORMATETC members
+	STDMETHOD(Next)(ULONG, LPFORMATETC, ULONG FAR *);
+	STDMETHOD(Skip)(ULONG);
+	STDMETHOD(Reset)(void);
+	STDMETHOD(Clone)(IEnumFORMATETC FAR * FAR*);
+};
+
+// ---------------------------------------------------------------------------
+void DropData(HWND hwnd, IDataObject * pDataObject);
+
+typedef void __fastcall(__closure * TOnDragDropEvent)(void*Sender,
+	IDataObject * pDataObject, DWORD keyState, POINTL point, DWORD * effect);
+typedef void __fastcall(__closure * TOnDragLeaveEvent)(void*Sender);
+
+class TDropTarget : public IDropTarget {
+public:
+	TDropTarget(HWND hwnd);
+	~TDropTarget();
+
+	TOnDragDropEvent OnDragEnter;
+	TOnDragDropEvent OnDragOver;
+	TOnDragDropEvent OnDragDrop;
+	TOnDragLeaveEvent OnDragLeave;
+
+	__property TStringList *Files = {
+		read = GetFiles
+	};
+
+private:
+	// internal helper function
+	DWORD DropEffect(DWORD keyState, POINTL point, DWORD dwAllowed);
+	bool QueryDataObject(IDataObject *pDataObject);
+	HRESULT __stdcall DragEnter(IDataObject * pDataObject, DWORD keyState,
+		POINTL point, DWORD *effect);
+	HRESULT __stdcall DragOver(DWORD keyState, POINTL point, DWORD *effect);
+	HRESULT __stdcall DragLeave(void);
+	HRESULT __stdcall Drop(IDataObject *pDataObject, DWORD keyState,
+		POINTL point, DWORD *effect);
+
+	// IUnknown implementation
+	HRESULT __stdcall QueryInterface(REFIID iid, void ** ppvObject);
+	ULONG __stdcall AddRef(void);
+	ULONG __stdcall Release(void);
+
+	// Private member variables
+	LONG m_lRefCount;
+	HWND m_hWnd;
+	bool m_fAllowDrop;
+
+	IDataObject *m_pDataObject;
+	TStringList *m_Files;
+
+	TStringList *GetFiles();
+};
+
+// ---------------------------------------------------------------------------
+class TDataObject : public IDataObject {
+
+	DWORD m_dwRef;
+	HGLOBAL m_hglobal;
+
+public:
+	vector<FORMATETC> m_vfmtetc;
+
+	TDataObject();
+	~TDataObject();
+
+	HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject);
+	ULONG STDMETHODCALLTYPE AddRef(void);
+	ULONG STDMETHODCALLTYPE Release(void);
+
+	void set_hglobal(HGLOBAL hglobal);
+
+	HRESULT STDMETHODCALLTYPE GetData(FORMATETC * pFormatetc,
+		STGMEDIUM * pmedium);
+
+	HRESULT STDMETHODCALLTYPE GetDataHere(FORMATETC * pFormatetc,
+		STGMEDIUM * pmedium) {
+		return E_NOTIMPL;
+	}
+
+	HRESULT STDMETHODCALLTYPE QueryGetData(FORMATETC * pFormatetc);
+
+	HRESULT STDMETHODCALLTYPE GetCanonicalFormatEtc(FORMATETC * pFormatetcIn,
+		FORMATETC * pFormatetcOut) {
+		return E_NOTIMPL;
+	}
+
+	HRESULT STDMETHODCALLTYPE SetData(FORMATETC * pFormatetc,
+		STGMEDIUM * pmedium, BOOL fRelease) {
+//		return S_OK;
+		return E_NOTIMPL;
+//		if(pFormatetc->cfFormat == 49639)
+//		{
+//			m_vfmtetc.push_back(*pFormatetc);
+//			//m_med.pop_back(*pmedium);
+//			m_hImage = pmedium->hGlobal;
+//			return S_OK;
+//		}
+//		if(pFormatetc->cfFormat == 49360)
+//		{
+//			m_vfmtetc.push_back(*pFormatetc);
+//			//m_med.pop_back(*pmedium);
+//			m_hImage2 = pmedium->hGlobal;
+//			return S_OK;
+//		}
+//
+//
+//
+	}
+
+	HRESULT STDMETHODCALLTYPE EnumFormatEtc(DWORD dwDirection,
+		IEnumFORMATETC ** ppenumFormatetc);
+
+	HRESULT STDMETHODCALLTYPE DAdvise(FORMATETC * pFormatetc, DWORD advf,
+		IAdviseSink * pAdvSink, DWORD * pdwConnection) {
+		return E_NOTIMPL;
+	}
+
+	HRESULT STDMETHODCALLTYPE DUnadvise(DWORD dwConnection) {
+		return E_NOTIMPL;
+	}
+
+	HRESULT STDMETHODCALLTYPE EnumDAdvise(IEnumSTATDATA ** ppenumAdvise) {
+		return E_NOTIMPL;
+	}
+};
+
+#endif

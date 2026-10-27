@@ -1,0 +1,114 @@
+// CodeGear C++Builder
+// Copyright (c) 1995, 2009 by Embarcadero Technologies, Inc.
+// All rights reserved
+
+// (DO NOT EDIT: machine generated header) 'Cromis.directorywatch.pas' rev: 21.00
+
+#ifndef Cromis_directorywatchHPP
+#define Cromis_directorywatchHPP
+
+#pragma delphiheader begin
+#pragma option push
+#pragma option -w-      // All warnings off
+#pragma option -Vx      // Zero-length empty class member functions
+#pragma pack(push,8)
+#include <System.hpp>	// Pascal unit
+#include <Sysinit.hpp>	// Pascal unit
+#include <Windows.hpp>	// Pascal unit
+#include <Sysutils.hpp>	// Pascal unit
+#include <Classes.hpp>	// Pascal unit
+#include <Messages.hpp>	// Pascal unit
+#include <Syncobjs.hpp>	// Pascal unit
+#include <Dateutils.hpp>	// Pascal unit
+
+//-- user supplied -----------------------------------------------------------
+
+namespace Cromis_directorywatch
+{
+//-- type declarations -------------------------------------------------------
+#pragma option push -b-
+enum TWatchOption { woFileName, woDirName, woAttributes, woSize, woLastWrite, woLastAccess, woCreation, woSecurity };
+#pragma option pop
+
+typedef Set<TWatchOption, woFileName, woSecurity>  TWatchOptions;
+
+#pragma option push -b-
+enum TWatchAction { waAdded, waRemoved, waModified, waRenamedOld, waRenamedNew };
+#pragma option pop
+
+typedef Set<TWatchAction, waAdded, waRenamedNew>  TWatchActions;
+
+typedef void __fastcall (__closure *TFileChangeNotifyEvent)(const System::TObject* Sender, const TWatchAction Action, const System::UnicodeString FileName);
+
+typedef void __fastcall (__closure *TOnError)(const System::TObject* Sender, const int ErrorCode, const System::UnicodeString ErrorMessage);
+
+class DELPHICLASS TDirectoryWatch;
+class PASCALIMPLEMENTATION TDirectoryWatch : public System::TObject
+{
+	typedef System::TObject inherited;
+	
+private:
+	TWatchOptions FWatchOptions;
+	TWatchActions FWatchActions;
+	bool FWatchSubTree;
+	Classes::TThread* FWatchThread;
+	int FBufferSize;
+	HWND FWndHandle;
+	System::UnicodeString FDirectory;
+	unsigned FAbortEvent;
+	TOnError FOnError;
+	Classes::TNotifyEvent FOnChange;
+	TFileChangeNotifyEvent FOnNotify;
+	void __fastcall WatchWndProc(Messages::TMessage &Msg);
+	void __fastcall SetDirectory(const System::UnicodeString Value);
+	void __fastcall SetWatchOptions(const TWatchOptions Value);
+	void __fastcall SetWatchActions(const TWatchActions Value);
+	void __fastcall SetWatchSubTree(const bool Value);
+	void __fastcall DeallocateHWnd(HWND Wnd);
+	int __fastcall MakeFilter(void);
+	
+protected:
+	virtual void __fastcall Change(void);
+	void __fastcall AllocWatchThread(void);
+	void __fastcall ReleaseWatchThread(void);
+	void __fastcall RestartWatchThread(void);
+	virtual void __fastcall Notify(const int Action, const System::UnicodeString FileName);
+	
+public:
+	__fastcall TDirectoryWatch(void);
+	__fastcall virtual ~TDirectoryWatch(void);
+	void __fastcall Start(void);
+	void __fastcall Stop(void);
+	bool __fastcall Running(void);
+	__property bool WatchSubTree = {read=FWatchSubTree, write=SetWatchSubTree, nodefault};
+	__property TWatchOptions WatchOptions = {read=FWatchOptions, write=SetWatchOptions, nodefault};
+	__property TWatchActions WatchActions = {read=FWatchActions, write=SetWatchActions, nodefault};
+	__property int BufferSize = {read=FBufferSize, write=FBufferSize, nodefault};
+	__property System::UnicodeString Directory = {read=FDirectory, write=SetDirectory};
+	__property TFileChangeNotifyEvent OnNotify = {read=FOnNotify, write=FOnNotify};
+	__property Classes::TNotifyEvent OnChange = {read=FOnChange, write=FOnChange};
+	__property TOnError OnError = {read=FOnError, write=FOnError};
+};
+
+
+//-- var, const, procedure ---------------------------------------------------
+static const ShortInt FILE_NOTIFY_CHANGE_FILE_NAME = 0x1;
+static const ShortInt FILE_NOTIFY_CHANGE_DIR_NAME = 0x2;
+static const ShortInt FILE_NOTIFY_CHANGE_ATTRIBUTES = 0x4;
+static const ShortInt FILE_NOTIFY_CHANGE_SIZE = 0x8;
+static const ShortInt FILE_NOTIFY_CHANGE_LAST_WRITE = 0x10;
+static const ShortInt FILE_NOTIFY_CHANGE_LAST_ACCESS = 0x20;
+static const ShortInt FILE_NOTIFY_CHANGE_CREATION = 0x40;
+static const Word FILE_NOTIFY_CHANGE_SECURITY = 0x100;
+static const Word cShutdownTimeout = 0xbb8;
+static const ShortInt cFileWaitTimeout = 0x0;
+extern PACKAGE void __fastcall WaitForFileReady(const System::UnicodeString FileName, const unsigned Timeout = (unsigned)(0x0));
+
+}	/* namespace Cromis_directorywatch */
+using namespace Cromis_directorywatch;
+#pragma pack(pop)
+#pragma option pop
+
+#pragma delphiheader end.
+//-- end unit ----------------------------------------------------------------
+#endif	// Cromis_directorywatchHPP

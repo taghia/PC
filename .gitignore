@@ -1,0 +1,29 @@
+# Local tools
+/Tools/
+
+# RAD Studio build directories
+/Debug/
+/Release/
+/Win32/
+/Win64/
+/__history/
+
+# Compiler and linker outputs
+*.exe
+*.dll
+*.obj
+*.dcu
+*.pch
+*.tds
+*.map
+*.ilc
+*.ild
+*.ilf
+*.ils
+
+# RAD Studio user-specific files
+*.dsk
+*.local
+*.identcache
+*.stat
+

@@ -1,0 +1,1646 @@
+// ---------------------------------------------------------------------------
+
+#include <vcl.h>
+
+#pragma hdrstop
+
+#include "fileview.h"
+#include "winutils.h"
+#pragma package(smart_init)
+// ---------------------------------------------------------------------------
+// ValidCtrCheck is used to assure that the components created do not have
+// any pure virtual functions.
+//
+
+static inline void ValidCtrCheck(TFileView *) {
+	new TFileView(NULL);
+}
+
+// ---------------------------------------------------------------------------
+__fastcall TFileView::TFileView(TComponent* Owner) : TVirtualStringTree(Owner) {
+	storage = NULL;
+	popDrop = NULL;
+	rightDrag = false;
+	onItemFound = NULL;
+	onSearchNewDir = NULL;
+	searchMode = false;
+	globalMon->addRef();
+	TMonItem *mon = globalMon->mons.add();
+	mon->view = this;
+	mon->onChange = OnMonDirChange;
+	TreeOptions->MiscOptions >> toEditOnClick;
+
+	NodeDataSize = sizeof(int);
+	Files = new TFileObjectArray;
+	Files->compare = CompareProc;
+	Attribute = faDirectory | faAnyFile;
+	nIconSize = 16;
+	hiddenColor = (TColor)0x555555;
+	onDirChange = NULL;
+	onNotify = NULL;
+	lastNotifyTime = 0;
+	notifyDelay = 500; //ms
+	notiftTimer = new TTimer(this);
+	notiftTimer->Interval = 800;
+	notiftTimer->OnTimer = onTimerNotify;
+	DirMon = NULL;
+	//notiftTimer->Enabled = false;
+	//DirMon = new TDirMon(NULL);
+	//DirMon->WatchSubTree = false;
+	//DirMon->OnChange = OnMonDirChange;
+	Notifications = new TNotifications;
+	m_backIcon = new TIcon;
+	extraMenu = NULL;
+	m_bExecute = false;
+	m_files = new TStringList;
+	WindowProc = wndProc;
+	sortColor = TColor(0xF5F5F5);
+	lockShellExtract = false;
+
+	TVirtualTreeColumn *column;
+	column = Header->Columns->Add();
+	column->Text = "Name";
+	column->Width = 150;
+	column->Color = sortColor;
+	column = Header->Columns->Add();
+	column->Text = "Size";
+	column->Width = 65;
+	column->Options << coAllowClick;
+	column = Header->Columns->Add();
+	column->Text = "Type";
+	column->Width = 120;
+	column = Header->Columns->Add();
+	column->Text = "Modified";
+	column->Width = 100;
+	column = Header->Columns->Add();
+	column->Text = "Created";
+	column->Width = 100;
+	column->Options << coAllowClick;
+//	column->Options >> coVisible;
+	column = Header->Columns->Add();
+	column->Text = "Attributes";
+	column->Width = 65;
+	column->Options << coAllowClick;
+
+	TreeOptions->SelectionOptions << toMultiSelect;
+	TreeOptions->SelectionOptions << toRightClickSelect;
+	//TreeOptions->AutoOptions << toDisableAutoscrollOnFocus;
+	TreeOptions->SelectionOptions << toLevelSelectConstraint;
+
+	OnBeforeAutoFitColumn = onBeforeAutoFitColumn;
+	OnAfterAutoFitColumn = onAfterAutoFitColumn;
+
+	TreeOptions->MiscOptions >> toReadOnly;
+	TreeOptions->MiscOptions << toEditable;
+	TreeOptions->MiscOptions << toAcceptOLEDrop;
+	TreeOptions->MiscOptions << toReportMode;
+	TreeOptions->AutoOptions >> toAutoSort;
+	TreeOptions->AutoOptions << toAutoScroll;
+	TreeOptions->SelectionOptions << toRightClickSelect;
+	TreeOptions->PaintOptions << toHotTrack;
+	//TreeOptions->PaintOptions <<
+
+	DrawSelectionMode = smBlendedRectangle;
+	Header->Style = hsXPStyle;
+
+	TreeOptions->PaintOptions >> toShowTreeLines;
+
+	Header->Options << hoVisible;
+	Header->Options << hoDblClickResize;
+	Header->Options << hoShowSortGlyphs << hoHotTrack;
+	Header->SortColumn = 0;
+	Header->SortDirection = sdAscending;
+	Header->Height = 20;
+
+	DragType = dtOLE;
+	DragMode = dmManual;
+	OnHeaderClick = HeaderClick;
+	dataObject = NULL;
+	IncrementalSearch = TVTIncrementalSearch(isAll);
+
+	//Colors->UnfocusedSelectionColor = Colors->SelectionRectangleBlendColor;
+	Colors->HotColor = clNavy;
+
+	popDrop = new TPopupMenu(this);
+	TMenuItem *mi = new TMenuItem(popDrop);
+	mi->Caption = "Move Here";
+	mi->Tag = 1;
+	mi->OnClick = onDropAction;
+	popDrop->Items->Add(mi);
+	mi = new TMenuItem(popDrop);
+	mi->Caption = "Copy Here";
+	mi->Tag = 2;
+	mi->OnClick = onDropAction;
+	popDrop->Items->Add(mi);
+//	mi = new TMenuItem(popDrop);
+//	mi->Caption = "Copy Here As Shortcut";
+//	mi->Tag = 3;
+//	mi->OnClick = onDropAction;
+//	popDrop->Items->Add(mi);
+	mi = new TMenuItem(popDrop);
+	mi->Caption = "Cancel";
+	mi->OnClick = onDropAction;
+	popDrop->Items->Add(mi);
+}
+
+// ---------------------------------------------------------------------------
+__fastcall TFileView::~TFileView() {
+	if(DirMon) {
+		DirMon->Actived = false;
+		delete DirMon;
+	}
+	delete Files;
+	delete Notifications;
+	delete m_backIcon;
+	delete m_files;
+	globalMon->release();
+}
+
+// ---------------------------------------------------------------------------
+namespace Fileview {
+	void __fastcall PACKAGE Register() {
+		TComponentClass classes[1] = {
+			__classid(TFileView)
+		};
+		RegisterComponents(L"Samples", classes, 0);
+	}
+}
+
+// ---------------------------------------------------------------------------
+void __fastcall TFileView::SetDirectory(String value)
+{
+//	if (!DirectoryExists(value))
+//		return;
+	TFolderState *state = folderStates.States[Directory];
+	state->offsetY = OffsetY;
+	state->sortColumn = Header->SortColumn;
+	state->sortDir = Header->SortDirection == sdAscending ? +1 : -1;
+	int itemIndex = 0;
+	String name = ExtractFileName(ExcludeTrailingBackslash(Directory));
+	if (FocusedNode && RootNodeCount)
+	{
+		state->name = objectOf(FocusedNode)->FileName;
+		itemIndex = FocusedNode->Index;
+	}
+	String newDir = IncludeTrailingBackslash(value);
+	bool isNewDir = CompareText(newDir, FDirectory);
+	FDirectory = newDir;
+	history.addItem(newDir);
+	EnumFiles();
+	state = folderStates.States[Directory];
+	Header->SortColumn = state->sortColumn;
+	Header->SortDirection = state->sortDir == 1 ? sdAscending : sdDescending;
+	SortParams.SortColumn = state->sortColumn;
+	for (int ci=0; ci<Header->Columns->Count; ci++) {
+		if(ci != Header->SortColumn)
+			Header->Columns->Items[ci]->Color = clWhite;
+		else
+			Header->Columns->Items[ci]->Color = sortColor;
+	}
+	SortParams.SortDirection = state->sortDir;
+	Files->sort(SortParams);
+	RootNodeCount = 0;
+	RootNodeCount = Files->count;
+	if(state->name=="" && name != "") {
+		state->name = name;
+	}
+	FocusedNode = getNodeByFileName(state->name);
+	if(!FocusedNode) {
+		if(isNewDir) {
+			FocusedNode = getNode(0);
+			if(FocusedNode) AddToSelection(FocusedNode);
+		}
+		else {
+			if(itemIndex >= Files->count) itemIndex = Files->count - 1;
+			FocusedNode = getNode(itemIndex);
+		}
+	}
+	else if(isNewDir)
+	{
+		AddToSelection(FocusedNode);
+	}
+	OffsetY = state->offsetY;
+
+	if(isNewDir)
+	{
+		if(DirMon)
+		{
+			DirMon->Actived = false;
+			DirMon->WatchedDir = Directory;
+			DirMon->Actived = true;
+        }
+		if(onDirChange) onDirChange(this);
+	}
+	hotObjects.clean();
+}
+
+// ---------------------------------------------------------------------------
+String __fastcall TFileView::GetDirectory()
+{
+	return FDirectory;
+}
+
+// ---------------------------------------------------------------------------
+DWORD TFileView::EnumFiles()
+{
+	if(storage)
+		delete storage;
+	storage = createStorageFromPath(Directory);
+	if(!storage)
+		return 0;
+
+	Files->clear();
+	TStorageItems storageItems = storage->getItems(Directory, Attribute);
+	for (int i = 0; i < storageItems.count(); i++) {
+		TFileObject *fobj = Files->add();
+		TStorageItem &storageItem = storageItems[i];
+		fobj->FileName = storageItem.name;
+		fobj->dwFileAttributes = storageItem.attributes;
+		fobj->ftCreationTime = storageItem.creationTime;
+		fobj->ftLastWriteTime = storageItem.modifyTime;
+		fobj->nFileSizeHigh = (storageItem.size & 0xFFFFFFFF00000000LL) >> 16;
+		fobj->nFileSizeLow = (storageItem.size & 0xFFFFFFFF);
+	}
+//	HANDLE hfind = 0;
+//	bool result;
+//	TFileObject *item = Files->add();
+//	hfind = FindFirstFileW((IncludeTrailingBackslash(Directory) + (WideString)
+//			"*.*").w_str(), item);
+//	if (hfind == INVALID_HANDLE_VALUE) {
+//		Files->remove(item);
+//		return 0;
+//	}
+//	if (item->IsDot() || !(item->dwFileAttributes & Attribute))
+//		Files->remove(item);
+//	do {
+//		item = Files->add();
+//		result = FindNextFileW(hfind, item);
+//		if (!result || !(item->dwFileAttributes & Attribute) || item->IsDot())
+//			Files->remove(item);
+//	}
+//	while (result);
+//	FindClose(hfind);
+	return GetLastError();
+}
+
+// ---------------------------------------------------------------------------
+void __fastcall TFileView::SetAttribute(DWORD value) {
+	FAttribute = value;
+}
+
+// ---------------------------------------------------------------------------
+TDateTime TFileObject::GetVclDateTime(TDateKind type) {
+	wchar_t date[50];
+	SYSTEMTIME systime;
+	FILETIME file_time, localtime;
+	switch(type) {
+	case dkModified:
+		file_time = ftLastWriteTime;
+		break;
+	case dkCreated:
+		file_time = ftCreationTime;
+		break;
+	case dkAccessed:
+		file_time = ftLastAccessTime;
+		break;
+	}
+	FileTimeToLocalFileTime(&file_time, &localtime);
+	FileTimeToSystemTime(&localtime, &systime);
+	return SystemTimeToDateTime(systime);
+}
+
+String TFileObject::GetDate(TDateKind type) {
+	wchar_t date[50];
+	SYSTEMTIME systime;
+	FILETIME file_time, localtime;
+	switch(type) {
+	case dkModified:
+		file_time = ftLastWriteTime;
+		break;
+	case dkCreated:
+		file_time = ftCreationTime;
+		break;
+	case dkAccessed:
+		file_time = ftLastAccessTime;
+		break;
+	}
+
+	FileTimeToLocalFileTime(&file_time, &localtime);
+	FileTimeToSystemTime(&localtime, &systime);
+	wsprintfW(date, L"%.4i/%.2i/%.2i", systime.wYear, systime.wMonth,
+		systime.wDay);
+
+	return String(date);
+}
+
+// ---------------------------------------------------------------------------
+String TFileView::GetPathFileName(int index) {
+	String path;
+	if(FileObject[index]->Path.IsEmpty())
+		path = Directory;
+	else
+		path = FileObject[index]->Path;
+
+	return path + FileName[index];
+}
+
+// ---------------------------------------------------------------------------
+String TFileView::GetFileName(int index) {
+	return FileObject[index]->FileName;
+}
+
+// ---------------------------------------------------------------------------
+TFileObject* TFileView::GetFileObject(int index) {
+	if (index == -1)
+	{
+		if(!FocusedNode) {
+			return NULL;
+		}
+		index = FocusedNode->Index;
+	}
+	return objectOf(getNode(index));
+}
+// ---------------------------------------------------------------------------
+String TFileObject::GetFace()
+{
+	text fileName = FileName;
+	int pos = fileName.rfind(".");
+	if(pos > -1)
+		fileName = fileName.substr(0, pos);
+	return fileName;
+}
+// ---------------------------------------------------------------------------
+String TFileObject::GetDateTime(TDateKind type, bool shamsi) {
+	wchar_t date[50];
+	SYSTEMTIME systime;
+	FILETIME file_time, localtime;
+	switch(type) {
+	case dkModified:
+		file_time = ftLastWriteTime;
+		break;
+	case dkCreated:
+		file_time = ftCreationTime;
+		break;
+	case dkAccessed:
+		file_time = ftLastAccessTime;
+		break;
+	}
+
+	FileTimeToLocalFileTime(&file_time, &localtime);
+	FileTimeToSystemTime(&localtime, &systime);
+
+	int y, m, d;
+	SYSTEMTIME now;
+	//GetSystemTime(&now);
+	GetLocalTime(&now);
+	if(systime.wYear == now.wYear && systime.wMonth == now.wMonth && systime.wDay > now.wDay - 2 && systime.wDay <= now.wDay)
+	{
+		if(systime.wDay == now.wDay)
+			wsprintfW(date, L"Today %.2i:%.2i", systime.wHour, systime.wMinute);
+		else if(systime.wDay == now.wDay - 1)
+			wsprintfW(date, L"Yesterday %.2i:%.2i", systime.wHour, systime.wMinute);
+	}
+	else
+	{
+		if(shamsi)
+		{
+			TShamsiDate date(GetVclDateTime(type));
+			y = date.ShamsiYear - 1300;
+			d = date.ShamsiDay;
+			m = date.ShamsiMonth;
+		}
+		else
+		{
+			y = systime.wYear;
+			m = systime.wMonth;
+			d = systime.wDay;
+		}
+		wsprintfW(date, L"%i/%.2i/%.2i %.2i:%.2i", y, m, d, systime.wHour, systime.wMinute);
+	}
+
+	return String(date);
+}
+
+// ---------------------------------------------------------------------------
+int CompareProc(void *i1, void *i2, TSortParams &params) {
+	TFileObject *item1 = (TFileObject*)i1;
+	TFileObject *item2 = (TFileObject*)i2;
+	int result = item2->IsDoubleDot() - item1->IsDoubleDot();
+	if (result)
+		return result;
+
+	result = item2->IsDirectory() - item1->IsDirectory();
+	if (result && (params.SortColumn == colSize || params.SortColumn == colType))
+		return -result;
+	if (result && params.SortColumn != colDateModified && params.SortColumn !=
+		colDateCreated)
+		return result * params.SortDirection;
+	if (params.SortColumn == colName)
+		result = WideCompareText(item1->FileName, item2->FileName) * params.SortDirection;
+	else if (params.SortColumn == colSize) {
+		result = item1->Size - item2->Size;
+		if (result)
+			return result * params.SortDirection;
+		result = WideCompareText(item1->FileName, item2->FileName);
+	}
+	else if (params.SortColumn == colType) {
+		result = WideCompareText(item1->Ext, item2->Ext);
+		if (result)
+			return result * params.SortDirection;
+		result = WideCompareText(item1->FileName, item2->FileName);
+	}
+	else if (params.SortColumn == colDateModified) {
+		result = item1->GetVclDateTime(dkModified).Val * 1000 - item2->GetVclDateTime(dkModified).Val * 1000;
+		if (result)
+			return result * params.SortDirection;
+		result = WideCompareText(item1->FileName, item2->FileName);
+	}
+	else if (params.SortColumn == colDateCreated) {
+		result = item1->GetVclDateTime(dkCreated).Val * 1000 - item2->GetVclDateTime(dkCreated).Val * 1000;
+		if (result)
+			return result * params.SortDirection;
+		result = WideCompareText(item1->FileName, item2->FileName);
+	}
+	else if (params.SortColumn == colAttribute) {
+		result = WideCompareText(item1->Attribute, item2->Attribute);
+		if (result)
+			return result * params.SortDirection;
+		result = WideCompareText(item1->FileName, item2->FileName);
+	}
+	return result;
+}
+
+TFolderState* TFolderStates::GetState(String dir) {
+	dir = ExcludeTrailingBackslash(dir);
+	for (int i = 0; i < m_States->count; i++) {
+		if (!WideCompareText(m_States->items[i]->dir, dir))
+			return m_States->items[i];
+	}
+	TFolderState* state = m_States->add();
+	state->dir = dir;
+	return state;
+}
+
+// ---------------------------------------------------------------------------
+void TFolderStates::SetState(String dir, TFolderState* value) {
+	TFolderState* state = GetState(dir);
+	if (!state) {
+		state = m_States->add();
+		state->dir = dir;
+	}
+	state->offsetY = value->offsetY;
+	state->name = value->name;
+	state->sortColumn = value->sortColumn;
+	state->sortDir = value->sortDir;
+}
+
+// ---------------------------------------------------------------------------
+TFolderStates::TFolderStates() {
+	m_States = new TBaseArray<TFolderState>;
+}
+
+// ---------------------------------------------------------------------------
+TFolderStates::~TFolderStates() {
+	delete m_States;
+}
+
+// ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+void __fastcall TFileView::KeyPress(wchar_t &Key) {
+	if (Key == '\r')
+		if (FileObject->IsDirectory()) {
+			if (FileObject->IsDot())
+				up();
+			else
+				Directory = Directory + FileName;
+		}
+		else
+			Execute();
+	TVirtualStringTree::KeyPress(Key);
+}
+
+// ---------------------------------------------------------------------------
+void __fastcall TFileView::KeyDown(WORD &Key, TShiftState Shift) {
+	if (Key == 16)
+		return;
+
+	if (Shift.Contains(ssCtrl)) {
+		if (Shift.Contains(ssAlt)) {
+			switch(Key) {
+			case 'T':
+				selectByType();
+				break;
+			}
+		}
+		else
+			switch(Key) {
+			case 'A':
+				selectAll();
+				Key = 0;
+				break;
+
+			case 'C':
+			case VK_INSERT:
+				RootNamespace->Copy(NamespaceArray);
+				break;
+
+			case 'X':
+				RootNamespace->Cut(NamespaceArray);
+				break;
+
+			case 'V':
+				paste();
+				break;
+
+			case VK_DOWN:
+				// MoveCursor(Key);
+				break;
+
+			case VK_UP:
+				// MoveCursor(Key);
+				break;
+			//case VK_F5:
+				//reload();
+			}
+	}
+	else if (Shift.Contains(ssShift)) {
+		switch(Key) {
+		case VK_DELETE:
+			deleteSelected();
+			break;
+
+		case VK_INSERT:
+			paste();
+			break;
+
+		case 'R':
+			remark();
+			break;
+		}
+	}
+	else if (Shift.Contains(ssAlt)) {
+		switch(Key) {
+		case VK_DOWN:
+			// MoveCursor(VK_DOWN + VK_MENU);
+			break;
+
+		case VK_UP:
+			// MoveCursor(VK_UP + VK_MENU);
+			break;
+
+		case VK_LEFT:
+			// Backward();
+			break;
+
+		case VK_RIGHT:
+			// Forward();
+			break;
+		}
+	}
+	else if (Key == VK_DELETE)
+	{
+		deleteSelected();
+//		lockUpdate = true;
+//		RootNamespace->Delete(NamespaceArray);
+//		Notifications->clear();
+//		reload();
+//		lockUpdate = false;
+	}
+	else if (Key == VK_F2 && FocusedNode) {
+		EditNode(FocusedNode, 0);
+	}
+	else if (Key == VK_ESCAPE) {
+		// DeSelectAll();
+		UnselectNodes(GetFirst(), GetLast());
+		//updateSelectState();
+		Repaint();
+	}
+	else if (Key == VK_F1) {
+		showShellInfo();
+	}
+	else if (Key == VK_APPS) {
+		TVirtualNode *node = GetFirstSelected();
+		TRect rect = GetDisplayRect(node, 0, true, false, true);
+		TPoint point = Point(rect.left, rect.top);
+		point.x += rect.Width() / 2;
+		point.y += node->NodeHeight / 2;
+		point = ClientToScreen(point);
+		showContextMenu(point);
+		// TRect rect = ItemRect(nIndex);
+		// TPoint point = Point(rect.left + nIconSize/2 + nIcon2Text, rect.top + nIconSize/2 + nIcon2Text);
+		// point = ClientToScreen(point);
+		// ShowContextMenu(point);
+	}
+	else if (Key == VK_BACK && !IsEditing())
+		up();
+	TVirtualStringTree::KeyDown(Key, Shift);
+}
+
+// ---------------------------------------------------------------------------
+void __fastcall TFileView::KeyUp(WORD &Key, TShiftState Shift) {
+	TVirtualStringTree::KeyUp(Key, Shift);
+}
+
+// ---------------------------------------------------------------------------
+void TFileView::up() {
+	String dir = ExtractFilePath(ExcludeTrailingBackslash(Directory));
+	if (dir != "")
+	{
+		Directory = dir;
+		if(FocusedNode) ScrollIntoView(FocusedNode, 0, 0);
+	}
+}
+
+// ----------------------------------------------------------------------------------------
+void TFileView::Execute(String params, int index) {
+	if (index == -1 && !RootNode)
+		return;
+	String pathfilename, path = FileObject[index]->Path;
+	pathfilename = PathFileName[index];
+	String verb = "open";
+
+    SetCurrentDir(Directory);
+	ShellExecuteW(NULL, verb.w_str(), pathfilename.w_str(), params.w_str(),
+		L"", SW_SHOWNORMAL);
+
+	// if(wlRecent->IndexOf(pathfilename) == -1 && (int)result > 32)
+	// wlRecent->Add(pathfilename);
+	// bool bIsErrorOcured =
+	// (int)result == ERROR_FILE_NOT_FOUND ||
+	// (int)result == ERROR_PATH_NOT_FOUND ||
+	// (int)result == ERROR_BAD_FORMAT ||
+	// (int)result == SE_ERR_ACCESSDENIED ||
+	// (int)result == SE_ERR_ASSOCINCOMPLETE ||
+	// (int)result == SE_ERR_DDEBUSY ||
+	// (int)result == SE_ERR_DDEFAIL ||
+	// (int)result == SE_ERR_DDETIMEOUT ||
+	// (int)result == SE_ERR_DLLNOTFOUND ||
+	// (int)result == SE_ERR_DDETIMEOUT ||
+	// (int)result == SE_ERR_NOASSOC ||
+	// (int)result == SE_ERR_OOM ||
+	// (int)result == SE_ERR_PNF ||
+	// (int)result == SE_ERR_SHARE;
+
+	// if((int)result <= 32 && bIsErrorOcured)
+	// ShowHint(GetLastErrorText());
+}
+
+// ---------------------------------------------------------------------------
+void TFileView::selectByType() {
+	String ext = FileObject->GetExt().LowerCase();
+	TVirtualNode *node;
+	TFileObject *obj;
+	for (int i = 0; i < (int)RootNodeCount; i++) {
+		if (i == 0)
+			node = GetFirst(0);
+		else
+			node = GetNext(node, 0);
+		obj = objectOf(node);
+
+		if (obj->GetExt().LowerCase() == ext)
+			AddToSelection(node);
+		else
+			node->States >> vsSelected;
+	}
+	Repaint();
+}
+
+// ----------------------------------------------------------------------------------------
+void TFileView::cut() {
+	if(SelectedCount)
+		RootNamespace->Cut(NamespaceArray);
+}
+
+// ----------------------------------------------------------------------------------------
+void TFileView::paste(String dst) {
+	TInt64Array ids;
+	for (int i=0; i<Files->count; i++) {
+		ids.addItem(Files->items[i]->id);
+	}
+	lockUpdate = true;
+	if(dst == "") dst = Directory;
+	TNamespace *ns = new TNamespace(dst);
+	ns->Paste(CreateRootNamespaceArray(dst));
+	ns->Free();
+	reload();
+//	UnselectNodes(GetFirst(), GetLast());
+//	for (int i=0; i<Files->count; i++) {
+//		String fileName = Directory + Files->items[i]->FileName;
+//		if(ids.find(getFileID(fileName)) == -1)
+//			AddToSelection(getNode(i));
+//
+//	}
+//	if(GetFirstSelected()) ScrollIntoView(GetFirstSelected(), 0, 0);
+
+	Notifications->clear();
+	lockUpdate = false;
+}
+
+// ----------------------------------------------------------------------------------------
+void TFileView::copy() {
+	lockUpdate = true;
+	RootNamespace->Copy(NamespaceArray);
+	lockUpdate = false;
+}
+
+// ----------------------------------------------------------------------------------------
+void TFileView::doCopy(text dst)
+{
+	array items = getSelectList(true);
+	TStorage *dstStorage = createStorageFromPath(dst);
+	for (int i = 0; i < items.count(); i++) {
+		int pos = items[i].rfind("\\");
+		text name = items[i];
+		if(pos > 0)
+			name = name.substr(pos + 1);
+		data_t data = storage->download(items[i]);
+		dstStorage->upload(dst + name, data);
+	}
+	delete dstStorage;
+}
+
+// ----------------------------------------------------------------------------------------
+void TFileView::refresh() {
+	Directory = Directory;
+}
+// ----------------------------------------------------------------------------------------
+void TFileView::remark() {
+	String newName;
+	TFileObjectArray *selected = GetSelectedObjects();
+
+	lockUpdate = true;
+
+	for (int t = 0; t < selected->count; t++) {
+		String ext = selected->items[t]->Ext;
+		if (!CompareText(ext, ".rem"))
+			newName = Directory + ChangeFileExt(selected->items[t]->FileName,
+			"");
+		else
+			newName = Directory + selected->items[t]->FileName + ".rem";
+		while (FileExists(Directory + newName))
+			newName += ".rem";
+		RenameFile(Directory + selected->items[t]->FileName, newName);
+	}
+	delete selected;
+	lockUpdate = false;
+}
+
+// ---------------------------------------------------------------------------
+TFileObjectArray *TFileView::GetSelectedObjects() {
+	TFileObjectArray *result = new TFileObjectArray;
+	TVirtualNode *node = GetFirstSelected(0);
+	while (node) {
+		TFileObject *obj = objectOf(node);
+		if (!obj->IsDot())
+		{
+			result->add(obj);
+		}
+		 //	memcpy(result->add(), obj, sizeof(TFileObject));
+		node = GetNextSelected(node, 0);
+	}
+	return result;
+}
+
+// ---------------------------------------------------------------------------
+TNamespaceArray TFileView::CreateRootNamespaceArray(String root) {
+	FreeNamespaceArray();
+	m_NamespaceArray.Length = 1;
+	if(root == "") root = Directory;
+	m_NamespaceArray[0] = new TNamespace(root);
+	return m_NamespaceArray;
+}
+
+// ---------------------------------------------------------------------------
+TNamespace* TFileView::GetRootNamespace() {
+	if (m_RootNamespace)
+		m_RootNamespace->Free();
+	m_RootNamespace = 0;
+	if (FileObject && !FileObject->IsDot())
+		m_RootNamespace = new TNamespace(PathFileName);
+	if (!m_RootNamespace)
+		m_RootNamespace = new TNamespace(Directory);
+	return m_RootNamespace;
+}
+
+// ---------------------------------------------------------------------------
+void TFileView::FreeNamespaceArray() {
+	for (int i = 0; i < m_NamespaceArray.Length; i++)
+		m_NamespaceArray[i]->Free();
+	m_NamespaceArray.Length = 0;
+}
+
+// ---------------------------------------------------------------------------
+TNamespaceArray TFileView::GetNamespaceArray() {
+	CreateNamespaceArray(NULL);
+	return m_NamespaceArray;
+}
+
+// ---------------------------------------------------------------------------
+TNamespaceArray TFileView::CreateNamespaceArray(TStringList *files)
+{
+	FreeNamespaceArray();
+	if (!files) {
+		TFileObjectArray *selected = GetSelectedObjects();
+		m_NamespaceArray.Length = selected->count;
+		for (int t = 0; t < selected->count; t++)
+		{
+			String path;
+			if(selected->items[t]->Path.IsEmpty())
+				path = Directory;
+			else
+				path = selected->items[t]->Path;
+			m_NamespaceArray[t] = new TNamespace
+				(path + selected->items[t]->FileName);
+		}
+		if (!selected->count) {
+			m_NamespaceArray.Length = 1;
+			m_NamespaceArray[0] = new TNamespace(Directory);
+		}
+		delete selected;
+	}
+	else {
+		m_NamespaceArray.Length = files->Count;
+		for (int i = 0; i < files->Count; i++) {
+			m_NamespaceArray[i] = new TNamespace(files->Strings[i]);
+		}
+	}
+	return m_NamespaceArray;
+}
+//---------------------------------------------------------------------------
+void __fastcall TFileView::OnMonDirChange(TFileOperation FileOperation,
+	const UnicodeString FileName1, const UnicodeString FileName2)
+{
+	TNotification* item = Notifications->add();
+	item->fileName1 = FileName1;
+	item->fileName2 = FileName2;
+	item->action = FileOperation;
+
+	if(lockUpdate) return;
+
+	if(Application->MainFormHandle == GetForegroundWindow()) {
+		notifyDelay = 600;
+		notiftTimer->Interval = 1000;
+	} else {
+		notifyDelay = 2000;
+		notiftTimer->Interval = 2000;
+	}
+
+	notiftTimer->Enabled = false;
+	notiftTimer->Enabled = true;
+	if((int)GetTickCount() - lastNotifyTime < notifyDelay) {
+		return;
+	}
+
+	lastNotifyTime = GetTickCount();
+	ApplyNotifications();
+
+}
+// ---------------------------------------------------------------------------
+void TFileView::ApplyNotifications()
+{
+	if(lockUpdate || searchMode) return;
+	THotObject *obj;
+	int index;
+	TFileObject fo;
+	int notify = Notifications->count;
+	for (int i=0; i<Notifications->count; i++) {
+		TNotification *item = Notifications->items[i];
+		switch (item->action)
+		{
+			case foAdded:
+				obj = hotObjects.add();
+				obj->id = getFileID(item->fileName1);
+				obj->modifyType = mtNew;
+				break;
+			case foRemoved:
+				break;
+			case foModified:
+				while(i + 1 < Notifications->count
+					&& Notifications->items[i + 1]->action == foModified
+					&& Notifications->items[i + 1]->fileName1 == Notifications->items[i]->fileName1)
+					i++;
+				item = Notifications->items[i];
+				index = Files->indexOf(ExtractFileName(item->fileName1));
+				if(index != -1)
+				{
+					obj = hotObjects.add();
+					obj->id = getFileID(item->fileName1);
+					GetFileInfo(item->fileName1, &fo);
+					obj->modifyType = DetectModifyType(Files->items[index], &fo);
+					if(obj->modifyType == mtNone) {
+						hotObjects.remove(obj);
+						notify--;
+					}
+				}
+				break;
+			case foRenamed:
+				obj = hotObjects.add();
+				obj->id = getFileID(item->fileName2);
+				obj->modifyType = mtModifyName;
+				break;
+		}
+	}
+	Notifications->clear();
+	if(notify)
+	{
+		//Beep(1000, 39);
+		if(!IsEditing())
+			reload();
+		if(onNotify) onNotify(this);
+	}
+}
+//---------------------------------------------------------------------------
+void TFileView::ShowLastError()
+{
+	LPVOID lpMsgBuf;
+	FormatMessage(
+		FORMAT_MESSAGE_ALLOCATE_BUFFER |
+		FORMAT_MESSAGE_FROM_SYSTEM |
+		FORMAT_MESSAGE_IGNORE_INSERTS,
+		NULL,
+		GetLastError(),
+		MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), // Default language
+		(LPTSTR) &lpMsgBuf,
+		0,
+		NULL
+	);
+	MessageBox( NULL, (LPCTSTR)lpMsgBuf, "Error", MB_OK | MB_ICONINFORMATION );
+	LocalFree( lpMsgBuf );
+}
+//---------------------------------------------------------------------------
+int hash(int key)
+{
+  int constant = 0x27d4eb2d;
+  key = (key ^ 61) ^ (key >> 16);
+  key = key + (key << 3);
+  key = key ^ (key >> 4);
+  key = key * constant;
+  key = key ^ (key >> 15);
+  return key;
+}
+//---------------------------------------------------------------------------
+__int64 hashStr(String str)
+{
+	__int64 ret = 0;
+	for (int i=0; i<str.Length(); i++) {
+		ret += hash(str[i+1]);
+	}
+	return ret;
+}
+//---------------------------------------------------------------------------
+__int64 TFileView::getFileID(String fileName)
+{
+	__int64 id = 0;
+	HANDLE hFile;
+//	hFile = CreateFileW(fileName.c_str(),
+//		GENERIC_READ,
+//		FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+//		NULL,
+//		OPEN_EXISTING,
+//		FILE_FLAG_BACKUP_SEMANTICS,
+//		NULL
+//		);
+//	if(hFile != INVALID_HANDLE_VALUE)
+//	{
+//		BY_HANDLE_FILE_INFORMATION info;
+//		GetFileInformationByHandle(hFile, &info);
+//		__int64 high = info.nFileIndexHigh;
+//		id = info.nFileIndexLow + (high << 32);
+//		CloseHandle(hFile);
+//	}
+	if(id == 0)
+	{
+		id = hashStr(fileName);
+	}
+	return id;
+}
+//---------------------------------------------------------------------------
+TModifyType TFileView::DetectModifyType(TFileObject *oldObj, TFileObject *newObj)
+{
+	TModifyType result = mtNone;
+	if(oldObj->Size != newObj->Size) result = mtSize;
+	else if(oldObj->Attribute != newObj->Attribute) result = mtAttribute;
+	else if(oldObj->GetDate(dkCreated) != newObj->GetDate(dkCreated)) result = mtCreationTime;
+	else if(oldObj->GetDate(dkModified) != newObj->GetDate(dkModified)) result = mtLastWriteTime;
+	return result;
+}
+//---------------------------------------------------------------------------
+void TFileView::GetFileInfo(String pathFileName, TFileObject *item)
+{
+	HANDLE hFind = FindFirstFileW(pathFileName.w_str(), item);
+	FindClose(hFind);
+}
+//---------------------------------------------------------------------------
+int TFileObjectArray::indexOf(String fileName)
+{
+	for (int i=0; i<count; i++) {
+		if(!WideCompareText(items[i]->FileName, fileName))
+			return i;
+	}
+	return -1;
+}
+//---------------------------------------------------------------------------
+bool TFileView::IsNewObject(TFileObject* object)
+{
+	SYSTEMTIME curtime;
+	GetSystemTime(&curtime);
+	__int64 systime = SysTimeAsSeconds(curtime);
+	__int64 t1 = GetFileDateAsSeconds(object->ftCreationTime);
+	__int64 t2 = GetFileDateAsSeconds(object->ftLastWriteTime);
+	//__int64 t3 = GetFileDateAsSeconds(object->ftLastAccessTime);
+	return systime - t1 < 3600 || systime - t2 < 3600;
+}
+//---------------------------------------------------------------------------
+__int64 TFileView::SysTimeAsSeconds(SYSTEMTIME systime)
+{
+	return
+		systime.wYear * 12 * 31 * 24 * 60 * 60 +
+		systime.wMonth * 31 * 24 * 60 * 60 +
+		systime.wDay * 24 * 60 * 60 +
+		systime.wHour * 60 * 60 +
+		systime.wMinute * 60 +
+		systime.wSecond;
+}
+//---------------------------------------------------------------------------
+__int64 TFileView::GetFileDateAsSeconds(FILETIME &filetime)
+{
+	SYSTEMTIME systime;// = FileTimeToSysTime(filetime);
+	FileTimeToSystemTime(&filetime, &systime);
+	return SysTimeAsSeconds(systime);
+}
+//---------------------------------------------------------------------------
+void __fastcall TFileView::SetBackIcon(TIcon* value)
+{
+	if(value)
+		m_backIcon->Assign(value);
+	else
+		m_backIcon->Handle = NULL;
+}
+//---------------------------------------------------------------------------
+void __fastcall TFileView::HandleMouseDown(Messages::TWMMouse &Message, THitInfo &HitInfo)
+{
+	//
+	if(HitInfo.HitNode && Message.XPos < Header->Columns->Items[colName]->Left + 36)
+		HitInfo.HitPositions << hiOnItemLabel;
+	TVirtualStringTree::HandleMouseDown(Message, HitInfo);
+}
+//---------------------------------------------------------------------------
+void __fastcall TFileView::MouseDown(TMouseButton Button, TShiftState Shift, int X, int Y)
+{
+	if(Shift.Contains(ssDouble))
+		DblClicked = true;
+	else
+		DblClicked = false;
+}
+//---------------------------------------------------------------------------
+void __fastcall TFileView::MouseUp(TMouseButton Button, TShiftState Shift, int X, int Y)
+{
+	if(!TreeOptions->MiscOptions.Contains(toEditOnClick))
+	{
+		POINT point;
+		GetCursorPos(&point);
+		HWND hWnd = WindowFromPoint(point);
+		if(TWindow(hWnd).SameProcess(Handle) && !Application->ModalLevel)
+			TreeOptions->MiscOptions << toEditOnClick;
+	}
+
+	if(DblClicked)
+		DblClickUp();
+	else if(Button == mbRight && !rightDrag)
+	{
+		PostMessage(Handle, WM_SHOWCONTEXTMENU, 0, 0);
+	}
+	DblClicked = false;
+	TVirtualStringTree::MouseUp(Button, Shift, X, Y);
+	rightDrag = false;
+}
+//---------------------------------------------------------------------------
+void TFileView::showContextMenu(TPoint point)
+{
+	if(point.x == -1)
+		GetCursorPos(&point);
+	String root;
+	if(getSelectedCount())
+		root = PathFileName;
+	else root = Directory;
+	TNamespace *ns;
+	try{
+		ns = new TNamespace(root);
+	}catch(...)	{
+		ns->Free();
+		return;
+	}
+	ns->ShowContextMenuMulti(this, 0, 0, 0, NamespaceArray,
+		&point, extraMenu, extraMenuCaption, 0);
+
+	delete ns;
+}
+//---------------------------------------------------------------------------
+void __fastcall TFileView::DblClickUp(void)
+{
+	if(m_bExecute)
+		Execute();
+	m_bExecute = false;
+}
+//---------------------------------------------------------------------------
+void __fastcall TFileView::DblClick(void)
+{
+	if(FocusedNode && !searchMode)
+	{
+		TFileObject *obj = objectOf(FocusedNode);
+		if(obj->IsDirectory())
+		{
+			if(obj->IsDot())
+				up();
+			else
+				Directory = Directory + FileName;
+		}
+		else
+			m_bExecute = true;
+	}
+	if(OnDblClick) OnDblClick(this);
+}
+//---------------------------------------------------------------------------
+bool __fastcall TFileView::DoDragOver(System::TObject* Source,
+	Classes::TShiftState Shift, Controls::TDragState State,
+	const Types::TPoint &Pt, TDropMode Mode, int &Effect)
+{
+	rightDrag |= Shift.Contains(ssRight);
+	//if(!rightDrag) Beep(500, 50);
+	Effect = DROPEFFECT_COPY;
+	FORMATETC fmtetc = {CF_HDROP, 0, DVASPECT_CONTENT, -1, ::TYMED_HGLOBAL};
+	if(DragManager->DataObject->QueryGetData(&fmtetc) != S_OK) return false;
+	TVirtualNode *node = GetNodeAt(Pt.x, Pt.y);
+	int col = Header->Columns->ColumnFromPosition(Pt, false);
+	TFileObject *obj = objectOf(node);
+	TStringList *files = getDataObjectFiles();
+	if(!files->Count) return true; //Drag From WinRar Or ..
+	if((col == colName) && obj) {
+		if(files->Strings[0] == Directory + obj->FileName) return false;
+		if(obj->Ext == ".exe") return true;
+		return obj->IsDirectory();
+	}
+	String src = ExtractFilePath(files->Strings[0]);
+	String dst = Directory;
+	if(obj && obj->IsDirectory()) dst = Directory + obj->FileName;
+	return src != dst;
+}
+//---------------------------------------------------------------------------
+void __fastcall TFileView::DoDragDrop(System::TObject* Source, _di_IDataObject DataObject,
+	TFormatArray Formats, Classes::TShiftState Shift, const Types::TPoint &Pt, int &Effect, TDropMode Mode)
+{
+	if(Focused()) TreeOptions->MiscOptions << toEditOnClick;
+	TVirtualNode *node = GetNodeAt(Pt.x, Pt.y);
+	TFileObject *obj = objectOf(node);
+	m_copyDst = Directory;
+	int col = Header->Columns->ColumnFromPosition(Pt, false);
+	if((col == colName) && obj) m_copyDst += obj->FileName;
+	TStringList *files = getDataObjectFiles();
+	if((col == colName) && obj && !obj->Ext.CompareIC(".exe"))
+	{
+		RootNamespace->Copy(CreateNamespaceArray(files));
+		TNamespaceArray namespaceArray;
+		namespaceArray.Length = 1;
+		namespaceArray[0] = new TNamespace(m_copyDst);
+		TNamespace *ns = new TNamespace(m_copyDst);
+		ns->Paste(namespaceArray);
+		ns->Free();
+		namespaceArray[0]->Free();
+	}
+	else
+	{
+		if(rightDrag) {
+			popDrop->Tag = 0;
+			TPoint cp;
+			GetCursorPos(&cp);
+			popDrop->Popup(cp.x, cp.y);
+			Application->ProcessMessages();
+			if(!popDrop->Tag) { // cancel
+				return;
+			}
+			else if(popDrop->Tag == 1 || popDrop->Tag == 3) {// move here
+				TNamespace *nsSrc = new TNamespace(files->Strings[0]);
+				nsSrc->Cut(CreateNamespaceArray(files));
+				paste(m_copyDst);
+				nsSrc->Free();
+				return;
+			}
+
+		}
+		PostMessageA(Handle, WM_COPY, 0, 0);
+	}
+}
+//---------------------------------------------------------------------------
+void TFileView::selectAll()
+{
+	TVirtualNode *node = GetFirst(0);
+	FocusedNode = node;
+	while (node) {
+		TFileObject *obj = objectOf(node);
+		if (!obj->IsDot())
+			AddToSelection(node);
+		else
+			node->States >> vsSelected;
+		node = GetNext(node, 0);
+	}
+}
+//---------------------------------------------------------------------------
+HDROP TFileView::CreateHDrop(TStringList *files) {
+	int dropSize = sizeof(DROPFILES);
+	int bufferSize = dropSize;
+	for (int i = 0; i < files->Count; i++) {
+		bufferSize += files->Strings[i].Length() * 2 + 2;
+	}
+	HDROP hglobal = (HDROP)GlobalAlloc(GMEM_SHARE | GHND | GMEM_ZEROINIT,
+		bufferSize + 2);
+	DROPFILES *dropdat = (DROPFILES*)GlobalLock(hglobal);
+	dropdat->pFiles = sizeof(DROPFILES);
+	dropdat->fWide = 1;
+	WCHAR *pData = (WCHAR*)(((char*)dropdat) + dropSize);
+
+	for (int i = 0; i < files->Count; i++) {
+		WCHAR *pStr = files->Strings[i].w_str();
+		int len = wcslen(pStr);
+		wcscpy(pData, pStr);
+		pData[len] = 0;
+		pData = pData + len + 1;
+	}
+	*pData = 0;
+
+	GlobalUnlock(hglobal);
+	return hglobal;
+}
+//---------------------------------------------------------------------------
+void TFileView::GetSelectList(TStringList *items, bool path)
+{
+	items->Clear();
+	TFileObjectArray *selected = GetSelectedObjects();
+	for (int t = 0; t < selected->count; t++) {
+		String item = selected->items[t]->FileName;
+		if(path)
+			item = Directory + item;
+		items->Add(item);
+	}
+	delete selected;
+}
+//---------------------------------------------------------------------------
+array TFileView::getSelectList(bool path)
+{
+	array retv;
+	retv.clear();
+	TFileObjectArray *selected = GetSelectedObjects();
+	for (int t = 0; t < selected->count; t++) {
+		text item = selected->items[t]->FileName;
+		if(path)
+			item = Directory + item;
+		retv.add(item);
+	}
+	delete selected;
+	return retv;
+}
+//---------------------------------------------------------------------------
+void TFileView::copy(TStringList *Src, String Des, HWND parent)
+{
+	lockUpdate = true;
+	wchar_t *src;
+	int size = 0;
+
+	for(int t=0;t<Src->Count;t++)
+		size += Src->Strings[t].Length() * 2 + 2;
+
+	src = (wchar_t*)malloc(size + 4);
+
+	ZeroMemory(src, size);
+
+	int Lens = 0;
+	for(int t=0;t<Src->Count;t++)
+	{
+		wcscat(src, Src->Strings[t].w_str());
+		Lens += Src->Strings[t].Length();
+		src[Lens] = '<';
+		Lens += 1;
+		src[Lens] = NULL;
+	}
+	int l = wcslen(src);
+	for(int t=0;t<l;t++)
+	{
+		if(src[t] == (wchar_t)'<')
+			src[t] = 0;
+	}
+
+	SHFILEOPSTRUCTW FileOp;
+	ZeroMemory( &FileOp, sizeof(SHFILEOPSTRUCTW));
+
+	FileOp.hwnd = parent;
+	FileOp.pFrom = src;
+	FileOp.pTo = Des.w_str();
+	FileOp.wFunc = FO_COPY;
+	FileOp.fFlags = FOF_NOCONFIRMMKDIR;
+	ForceDirectories(Des);
+	SHFileOperationW(&FileOp);
+	free(src);
+	lockUpdate = false;
+}
+//---------------------------------------------------------------------------
+void __fastcall TFileView::wndProc(Messages::TMessage &Message)
+{
+//	if(Message.Msg == WM_FileNotify)
+//	{
+//		TNotifyParams *params = (TNotifyParams*)Message.WParam;;
+//		TNotification* item = Notifications->add();
+//		item->fileName1 = params->file1;
+//		item->fileName2 = params->file2;
+//		item->action = params->operation;
+//		while((int)GetTickCount() - lastNotifyTime < notifyDelay)
+//		{
+//			Sleep(50);
+//			Application->ProcessMessages();
+//		}
+//		lastNotifyTime = GetTickCount();
+//		ApplyNotifications();
+//
+//		delete params;
+//	}
+	if(Message.Msg == WM_COPY)
+	{
+		TStringList *list = new TStringList;
+		list->Assign(m_files);
+		copy(list, m_copyDst, this->Handle);
+		delete list;
+		return;
+	}
+	else if(Message.Msg == WM_KILLFOCUS)
+	{
+		TreeOptions->MiscOptions >> toEditOnClick;
+	}
+	else if(Message.Msg == WM_SHOWCONTEXTMENU)
+	{
+		showContextMenu();
+	}
+	WndProc(Message);
+}
+void TFileView::reload()
+{
+	TUpdateLock updateLock(this);
+	if(!DirectoryExists(Directory)) {
+		up();
+		return;
+	}
+	int offset = OffsetY;
+	TStringList *selected = new TStringList;
+	GetSelectList(selected, false);
+	TVirtualNode *beforeSelect = NULL, *first = NULL;
+	bool isPrevNode = false;
+	first = GetFirstSelected();
+	if (first)
+	{
+		if(first->Index > 0)
+		{
+			beforeSelect = GetPrevious(first);
+			isPrevNode = true;
+		}
+		else
+			beforeSelect = first;
+	}
+	else
+		beforeSelect = FocusedNode;
+
+//	TFolderState *state = folderStates.States[Directory];
+	EnumFiles();
+	SortParams.SortColumn = Header->SortColumn;
+	SortParams.SortDirection = Header->SortDirection == sdAscending ? +1 : -1;
+	Files->sort(SortParams);
+	//FocusedNode = NULL;
+	RootNodeCount = Files->count;
+	if(beforeSelect && Files->count - 1 < (int)beforeSelect->Index) beforeSelect = NULL;
+	invalidateAll();
+
+	//OffsetY = state->offsetY;
+	hotObjects.clean();
+
+	TVirtualNode *node = GetFirst();
+	while(node)
+	{
+		TFileObject *obj = objectOf(node);
+		if(!obj) ShowMessage("!obj");
+		if(selected->IndexOf(obj->FileName) > -1)
+		{
+			AddToSelection(node);
+			//if(!FocusedNode)
+				FocusedNode = node;
+		}
+		else
+			node->States >> vsSelected;
+		node = GetNext(node);
+	}
+	if(!GetFirstSelected() && first) {
+		TVirtualNode *active = NULL;
+		if(beforeSelect)
+		{
+			if(isPrevNode)
+				active = GetNext(beforeSelect);
+			else
+				active = beforeSelect;
+			if(!active) active = beforeSelect;
+		}
+		else
+			active = GetFirst();
+		if(active)
+		{
+			AddToSelection(active);
+			FocusedNode = active;
+		}
+	}
+	OffsetY = offset;
+}
+//---------------------------------------------------------------------------
+void __fastcall TFileView::onTimerNotify(TObject *Sender)
+{
+	ApplyNotifications();
+}
+//---------------------------------------------------------------------------
+void __fastcall TGlobalMon::onChange(TFileOperation FileOperation,
+	const UnicodeString FileName1, const UnicodeString FileName2)
+{
+	String modifiedRootDir = IncludeTrailingBackslash(ExtractFileDir(FileName1)).LowerCase();
+	String modifideChildDir = IncludeTrailingBackslash(FileName1).LowerCase();
+//	OutputDebugStringW(modifiedRootDir.c_str());
+//	OutputDebugStringW(modifideChildDir.c_str());
+	for (int i=0; i<mons.count; i++) {
+		String viewDir = mons.items[i]->view->Directory.LowerCase();
+		bool searchMode = mons.items[i]->view->searchMode;
+		if(modifiedRootDir == viewDir || modifideChildDir == viewDir || (searchMode && modifideChildDir.Pos(viewDir)))
+			mons.items[i]->onChange(FileOperation, FileName1, FileName2);
+	}
+}
+//---------------------------------------------------------------------------
+TGlobalMon::TGlobalMon()
+{
+	SetErrorMode(SEM_FAILCRITICALERRORS);
+	refresh();
+}
+//---------------------------------------------------------------------------
+void TGlobalMon::refresh()
+{
+	free();
+	int count = getDrivesCount();
+	for (int i=0; i<count; i++) {
+		char driveStr[] = {getDriveStr(i), ':', '\\', 0};
+		if(GetDriveType(driveStr) == DRIVE_CDROM) continue;
+		notifers.Length = notifers.Length + 1;
+		notifers[i] = new TDirMon(NULL);
+		notifers[i]->WatchedDir = driveStr;
+		notifers[i]->OnChange = onChange;
+		notifers[i]->WatchSubTree = true;
+		notifers[i]->Actived = true;
+	}
+}
+//---------------------------------------------------------------------------
+void TFileView::deleteSelected()
+{
+	if(!SelectedCount) return;
+	lockUpdate = true;
+	HWND hForg = GetForegroundWindow();
+	array selList = getSelectList(true);
+	storage->deleteItems(selList);
+	//RootNamespace->Delete(NamespaceArray);
+	Notifications->clear();
+	reload();
+	SetForegroundWindow(hForg);
+	lockUpdate = false;
+}
+//---------------------------------------------------------------------------
+void TFileView::search(TSearchParams *params)
+{
+	Files->clear();
+	RootNodeCount = 0;
+	bStopSearch = false;
+	String dir = params->dir;
+	FDirectory = dir;
+	searchMode = true;
+	if(onSearchNewDir) onSearchNewDir(this, dir);
+	search(params, dir);
+}
+//---------------------------------------------------------------------------
+void TFileView::search(TSearchParams *params, String path)
+{
+	if(bStopSearch) return;
+	HANDLE hfind = 0;
+	bool result;
+	TFileObject *item = Files->add();
+	hfind = FindFirstFileW((IncludeTrailingBackslash(path) + (WideString)"*.*").w_str(), item);
+	if (hfind == INVALID_HANDLE_VALUE) {
+		Files->remove(item);
+		return;
+	}
+	if (item->IsDot())
+		Files->remove(item);
+	do {
+		item = Files->add();
+		result = FindNextFileW(hfind, item);
+		item->Path = IncludeTrailingBackslash(path);
+		if (!result || item->IsDot() || !itemFound(item, params))
+			Files->remove(item);
+		if(item->IsDirectory())
+		{
+			String newDir = IncludeTrailingBackslash(path + item->FileName);
+			if(onSearchNewDir) onSearchNewDir(this, newDir);
+			search(params, newDir);
+		}
+	}
+	while (result && !bStopSearch);
+	FindClose(hfind);
+}
+//---------------------------------------------------------------------------
+int fileSearch(String fileName, BYTE *buff, int len)
+{
+	TMemoryStream *ms = new TMemoryStream;
+	try {
+		ms->LoadFromFile(fileName);
+		BYTE *pMem = (BYTE*)ms->Memory;
+		bool compare;
+		for (int i=0; i<ms->Size - len; i++) {
+			compare = true;
+			for (int j=0; j<len; j++) {
+				compare &= tolower(buff[j]) == tolower(pMem[i + j]);
+			}
+			if(compare) {
+				delete ms;
+				return i;
+			}
+		}
+	} catch (...) {
+	}
+
+	delete ms;
+	return -1;
+}
+//---------------------------------------------------------------------------
+bool TFileView::itemFound(TFileObject *obj, TSearchParams *params)
+{
+	Application->ProcessMessages();
+	text fileName = obj->FileName.LowerCase();
+	TSearchParam *param;
+	bool result = true;
+	for (int pi=0; pi<params->count; pi++) {
+		param = params->items[pi];
+		if(param->type & ptText)
+		{
+			if(param->text.contains("*"))
+				result &= fileName.wciCompare(param->text);
+			else
+				result &= fileName.contains(param->text);
+		}
+		if(!result) break;
+		if(param->type & ptSize)
+		{
+			result &= ((obj->Size <= param->sizeMax || param->sizeMax == -1) &&
+				(obj->Size >= param->sizeMin || param->sizeMin == -1));
+		}
+		if(!result) break;
+		if(param->type & ptDate)
+		{
+			TDateTime dt = obj->GetVclDateTime(dkModified);
+			result &= ((dt <= param->dateMax || param->dateMax.Val == -1) &&
+				(dt >= param->dateMin || param->dateMin.Val == -1));
+		}
+		if(!result) break;
+		if(param->type & ptContent)
+		{
+			if(obj->IsDirectory())
+				result = false;
+			else {
+				//char *str = new char[param->content.length() + 1];
+				int index = fileSearch(obj->Path + obj->FileName, (char*)param->content.t_str(), param->content.length());
+				//delete [] str;
+				result &= (index != -1);
+			}
+		}
+		if(!result) break;
+		if((param->type & ptBuffer) && !obj->IsDirectory())
+		{
+			int index = fileSearch(obj->Path + obj->FileName, param->buffer, param->bufferLen);
+			result &= (index != -1);
+		}
+	}
+	end:
+	if(result)
+	{
+		if(onItemFound) onItemFound(this);
+		RootNodeCount = RootNodeCount + 1;
+	}
+	return result;
+}
+//---------------------------------------------------------------------------
+void TFileView::showShellInfo()
+{
+	RootNamespace->ShowPropertySheetMulti(NamespaceArray, 0, 0);
+}
+//---------------------------------------------------------------------------
+void __fastcall TFileView::onDropAction(TObject *sender)
+{
+	TMenuItem *mi = (TMenuItem*)sender;
+	mi->GetParentMenu()->Tag = mi->Tag;
+}
+//---------------------------------------------------------------------------
+

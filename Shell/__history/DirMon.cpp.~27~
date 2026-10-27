@@ -1,0 +1,231 @@
+#include "dirmon.h"
+
+void __fastcall TShellChangeThread::Execute(void)
+{
+	DWORD numBytes;
+	DWORD CompletionKey;
+	LPOVERLAPPED POverlapped;
+	HANDLE TempDirectoryHandle;
+	HANDLE TempCompletionPort;
+	while(!Terminated)
+	{
+		Lock();
+		TempDirectoryHandle = FDirectoryHandle;
+		TempCompletionPort = FCompletionPort;
+		Unlock();
+		if(TempDirectoryHandle > 0)
+		{
+			POverlapped = &FOverlapped;
+			memset(FNotificationBuffer, sizeof(FNotificationBuffer), 0);
+			GetQueuedCompletionStatus(TempCompletionPort, &numBytes, &CompletionKey,
+				&POverlapped, INFINITE);
+			if(CompletionKey == Handle) {
+			Synchronize(DoIOCompletionEvent);
+			FBytesWritten = 0;
+			memset(FNotificationBuffer, sizeof(FNotificationBuffer), 0);
+			ReadDirectoryChangesW(FDirectoryHandle, FNotificationBuffer,
+				sizeof(FNotificationBuffer), FWatchSubTree, FNotifyOptionFlags,
+				(PDWORD)&FBytesWritten, &FOverlapped, NULL);
+			}
+		}
+	}
+	PostQueuedCompletionStatus(TempCompletionPort, 0, 0, NULL);
+}
+
+TFileOperation FileOperation;
+String FileName1, FileName2;
+void __fastcall TShellChangeThread::DoDirChangeEvent()
+{
+
+	if (ChangeEvent && FActived)
+		ChangeEvent(FileOperation, FileName1, FileName2);
+//	if(hNotifyWindow)
+//	{
+//		TNotifyParams *params = new TNotifyParams;
+//		params->file1 = FileName1;
+//		params->file2 = FileName2;
+//		params->operation = FileOperation;
+//		PostMessageA(hNotifyWindow, WM_FileNotify, (WPARAM)params, 0);
+//	}
+}
+
+String __fastcall TShellChangeThread::CompleteFileName(const String FileName)
+{
+	String Result = "";
+	if (Trim(FileName) != "")
+		Result = FDirectory + Trim(FileName);
+	return Result;
+}
+
+void __fastcall TShellChangeThread::DoIOCompletionEvent(void)
+{
+	TNotificationBuffer TempBuffer;
+	PFileNotifyInformation FileOpNotification;
+	Longint Offset;
+	Lock();
+	TempBuffer = FNotificationBuffer;
+	memset(FNotificationBuffer, sizeof(FNotificationBuffer), 0);
+	Unlock();
+	FileOpNotification = (PFileNotifyInformation)&TempBuffer[0];
+	do
+	{
+		Offset = FileOpNotification->NextEntryOffset;
+		FileName2 = "";
+		FileOpNotification->FileName[FileOpNotification->FileNameLength/2] = 0;
+		switch(FileOpNotification->Action)
+		{
+			case FILE_ACTION_ADDED:
+			case FILE_ACTION_MODIFIED:
+			case FILE_ACTION_REMOVED:
+				FileName1 = CompleteFileName(FileOpNotification->FileName);
+				FileOperation = TFileOperation(FileOpNotification->Action - 1);
+				DoDirChangeEvent();
+				break;
+			case FILE_ACTION_RENAMED_OLD_NAME:
+				FileName1 = CompleteFileName(FileOpNotification->FileName);
+				FileOperation = TFileOperation(FileOpNotification->Action - 1);
+				break;
+			case FILE_ACTION_RENAMED_NEW_NAME:
+				if (FileOperation == foRenamed)
+					FileName2 = CompleteFileName(FileOpNotification->FileName);
+				DoDirChangeEvent();
+				break;
+		}
+		FileOpNotification = PFileNotifyInformation((char*)(FileOpNotification) + Offset);
+	}
+	while(Offset);
+}
+bool __fastcall TShellChangeThread::ResetReadDirctory(void)
+{
+	HANDLE TempHandle;
+	HANDLE TempCompletionPort;
+	bool Result = false;
+	CloseHandle(FDirectoryHandle);
+	PostQueuedCompletionStatus(FCompletionPort, 0, 0, NULL);
+	CloseHandle(FCompletionPort);
+
+	TempHandle = CreateFileW(FDirectory.w_str(), GENERIC_READ | GENERIC_WRITE,
+		  FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+		  NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED, 0);
+	Lock();
+	FDirectoryHandle = TempHandle;
+	Unlock();
+
+	if ((GetLastError() == ERROR_FILE_NOT_FOUND) ||
+		(GetLastError() == ERROR_PATH_NOT_FOUND))
+	{
+		Lock();
+		FDirectoryHandle = 0;
+		FCompletionPort = 0;
+		Unlock();
+		return Result;
+	}
+
+	TempCompletionPort = CreateIoCompletionPort(FDirectoryHandle, 0, Handle, 0);
+
+	Lock();
+	FCompletionPort = TempCompletionPort;
+	Unlock();
+
+	FBytesWritten = 0;
+	memset(FNotificationBuffer, sizeof(FNotificationBuffer), 0);
+	Result = ReadDirectoryChangesW(FDirectoryHandle, FNotificationBuffer,
+		sizeof(FNotificationBuffer), FWatchSubTree, FNotifyOptionFlags,
+		&FBytesWritten, &FOverlapped, NULL);
+	return Result;
+}
+void __fastcall TShellChangeThread::Lock(void)
+{
+	EnterCriticalSection(&FCS);
+}
+void __fastcall TShellChangeThread::Unlock(void)
+{
+	LeaveCriticalSection(&FCS);
+}
+__fastcall TShellChangeThread::TShellChangeThread(TFileDealMethod ChangeEvent):TThread(true)
+{
+	FreeOnTerminate = 1;
+	FChangeEvent = ChangeEvent;
+	Priority = tpHighest;
+
+	InitializeCriticalSection(&FCS);
+	InitializeCriticalSection(&event);
+	FDirectoryHandle = 0;
+	FCompletionPort = 0;
+	hNotifyWindow = 0;
+}
+__fastcall TShellChangeThread::~TShellChangeThread(void)
+{
+	CloseHandle(FDirectoryHandle);
+	CloseHandle(FCompletionPort);
+	DeleteCriticalSection(&FCS);
+	DeleteCriticalSection(&event);
+}
+void __fastcall TShellChangeThread::SetDirectoryOptions(System::UnicodeString Directory, bool Actived, bool WatchSubTree, unsigned NotifyOptionFlags)
+{
+	FWatchSubTree = WatchSubTree;
+	FNotifyOptionFlags = NotifyOptionFlags;
+	FDirectory = IncludeTrailingBackslash(Directory);
+	FActived = Actived;
+	ResetReadDirctory();
+}
+
+void __fastcall TDirMon::SetWatchedDir(const UnicodeString Value)
+{
+	directoryWatch->Directory = Value;
+}
+
+String __fastcall TDirMon::GetWatchedDir()
+{
+	return directoryWatch->Directory;
+}
+
+void __fastcall TDirMon::SetWatchSubTree(const bool Value)
+{
+	directoryWatch->WatchSubTree = Value;
+}
+
+bool __fastcall TDirMon::GetWatchSubTree()
+{
+	return directoryWatch->WatchSubTree;
+}
+
+
+void __fastcall TDirMon::SetOnChange(const TFileDealMethod Value)
+{
+	FOnChange = Value;
+}
+
+void __fastcall TDirMon::SetFilters(const TNotifyFilters Value)
+{
+	if (FFilters != Value)
+	{
+		FFilters = Value;
+	}
+}
+
+void __fastcall TDirMon::SetActived(const bool Value)
+{
+	if(Value)
+		directoryWatch->Start();
+	else
+		directoryWatch->Stop();
+	FActived = Value;
+}
+
+__fastcall TDirMon::TDirMon(Classes::TComponent* AOwner) : TComponent(Owner)
+{
+	directoryWatch = new TDirectoryWatch;
+	directoryWatch->OnNotify = OnDirChange;
+}
+__fastcall TDirMon::~TDirMon(void)
+{
+	delete directoryWatch;
+}
+
+void __fastcall TDirMon::OnDirChange(const TObject* Sender,
+	const TWatchAction Action, const UnicodeString FileName)
+{
+;
+}
+

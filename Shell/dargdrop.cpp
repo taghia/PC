@@ -1,0 +1,477 @@
+// ---------------------------------------------------------------------------
+
+#pragma hdrstop
+
+#include "dargdrop.h"
+
+// ---------------------------------------------------------------------------
+TDropSource::TDropSource() {
+	m_dwRef = 0;
+
+	// opposite button cancels drag operation
+	m_dwButtonCancel = 0;
+	m_dwButtonDrop = 0;
+	m_Files = new TStringList;
+}
+
+TDropSource::~TDropSource() {
+	delete m_Files;
+}
+
+ULONG STDMETHODCALLTYPE TDropSource::AddRef() {
+	return++m_dwRef;
+}
+
+ULONG STDMETHODCALLTYPE TDropSource::Release() {
+	if (--m_dwRef == 0) {
+		delete this;
+		return 0;
+	}
+	return m_dwRef;
+}
+
+HRESULT STDMETHODCALLTYPE TDropSource::QueryInterface(REFIID iid,
+	void FAR* FAR* ppvObj) {
+	if (iid == IID_IUnknown || iid == IID_IDropSource) {
+		*ppvObj = this;
+		AddRef();
+		return NOERROR;
+	}
+	return ResultFromScode(E_NOINTERFACE);
+}
+
+HRESULT STDMETHODCALLTYPE TDropSource::QueryContinueDrag(BOOL bEscapePressed,
+	DWORD dwKeyState) {
+
+	if (bEscapePressed || (dwKeyState & m_dwButtonCancel) != 0)
+		return DRAGDROP_S_CANCEL;
+
+	if (GetKeyState(VK_LBUTTON) < 0) {
+		m_dwButtonDrop |= MK_LBUTTON;
+		m_dwButtonCancel |= MK_RBUTTON;
+	}
+	else if (GetKeyState(VK_RBUTTON) < 0) {
+		m_dwButtonDrop |= MK_RBUTTON;
+		m_dwButtonCancel |= MK_LBUTTON;
+	}
+
+	if ((dwKeyState & m_dwButtonDrop) == 0)
+		return DRAGDROP_S_DROP;
+
+	return S_OK;
+}
+
+HRESULT STDMETHODCALLTYPE TDropSource::GiveFeedback(DWORD dwEffect) {
+	return DRAGDROP_S_USEDEFAULTCURSORS;
+}
+
+EnumFORMATETC::EnumFORMATETC(const vector<FORMATETC>& ArrFE) : m_cRefCount(0),
+m_iCur(0) {
+	for (UINT i = 0; i < ArrFE.size(); ++i)
+		m_pFmtEtc.push_back(ArrFE[i]);
+}
+
+EnumFORMATETC::EnumFORMATETC(const vector<FORMATETC*>& ArrFE) : m_cRefCount(0),
+m_iCur(0) {
+	for (UINT i = 0; i < ArrFE.size(); ++i)
+		m_pFmtEtc.push_back(*ArrFE[i]);
+}
+
+EnumFORMATETC::EnumFORMATETC() : m_cRefCount(0), m_iCur(0) {
+}
+
+void EnumFORMATETC::add(const FORMATETC &fmtetc) {
+	m_pFmtEtc.push_back(fmtetc);
+}
+
+////////////////////
+//////   EnumFORMATETC
+///////////////////////////////
+
+STDMETHODIMP EnumFORMATETC::QueryInterface(REFIID refiid, void FAR* FAR* ppv) {
+	*ppv = NULL;
+	if (IID_IUnknown == refiid || IID_IEnumFORMATETC == refiid)
+		* ppv = this;
+
+	if (*ppv != NULL) {
+		((LPUNKNOWN) * ppv)->AddRef();
+		return S_OK;
+	}
+	return E_NOINTERFACE;
+}
+
+STDMETHODIMP_(ULONG)EnumFORMATETC::AddRef(void) {
+	return++m_cRefCount;
+}
+
+STDMETHODIMP_(ULONG)EnumFORMATETC::Release(void) {
+	long nTemp = --m_cRefCount;
+	if (nTemp == 0)
+		delete this;
+
+	return nTemp;
+}
+
+////////////////////
+//////   EnumFORMATETC
+///////////////////////////////
+
+STDMETHODIMP EnumFORMATETC::Next(ULONG celt, LPFORMATETC lpFormatEtc,
+	ULONG FAR *pceltFetched) {
+	if (pceltFetched != NULL)
+		* pceltFetched = 0;
+
+	ULONG cReturn = celt;
+
+	if (celt <= 0 || lpFormatEtc == NULL || m_iCur >= m_pFmtEtc.size())
+		return S_FALSE;
+
+	if (pceltFetched == NULL && celt != 1) // pceltFetched can be NULL only for 1 item request
+		return S_FALSE;
+
+	while (m_iCur < m_pFmtEtc.size() && cReturn > 0) {
+		*lpFormatEtc++ = m_pFmtEtc[m_iCur++];
+		--cReturn;
+	}
+	if (pceltFetched != NULL)
+		* pceltFetched = celt - cReturn;
+
+	return(cReturn == 0) ? S_OK : S_FALSE;
+}
+
+////////////////////
+//////   EnumFORMATETC
+///////////////////////////////
+
+STDMETHODIMP EnumFORMATETC::Skip(ULONG celt) {
+	if ((m_iCur +int(celt)) >= m_pFmtEtc.size())
+		return S_FALSE;
+	m_iCur += celt;
+	return S_OK;
+}
+////////////////////
+//////   EnumFORMATETC
+///////////////////////////////
+
+STDMETHODIMP EnumFORMATETC::Reset(void) {
+	m_iCur = 0;
+	return S_OK;
+}
+
+////////////////////
+//////   EnumFORMATETC
+///////////////////////////////
+
+STDMETHODIMP EnumFORMATETC::Clone
+	(IEnumFORMATETC FAR * FAR*ppCloneEnumFormatEtc) {
+	if (ppCloneEnumFormatEtc == NULL)
+		return E_POINTER;
+
+	EnumFORMATETC *newEnum = new EnumFORMATETC(m_pFmtEtc);
+	if (newEnum == NULL)
+		return E_OUTOFMEMORY;
+	newEnum->AddRef();
+	newEnum->m_iCur = m_iCur;
+	*ppCloneEnumFormatEtc = newEnum;
+	return S_OK;
+}
+
+TDataObject::TDataObject() {
+	m_dwRef = 0;
+	m_hglobal = NULL;
+}
+
+TDataObject::~TDataObject() {
+	if (m_hglobal)
+		GlobalFree(m_hglobal);
+}
+
+ULONG STDMETHODCALLTYPE TDataObject::AddRef() {
+	return++m_dwRef;
+}
+
+ULONG STDMETHODCALLTYPE TDataObject::Release() {
+	if (--m_dwRef == 0) {
+		delete this;
+		return 0;
+	}
+	return m_dwRef;
+}
+
+HRESULT STDMETHODCALLTYPE TDataObject::QueryInterface(REFIID iid,
+	void FAR* FAR* ppvObj) {
+	if (iid == IID_IUnknown || iid == IID_IDataObject) {
+		*ppvObj = this;
+		AddRef();
+		return NOERROR;
+	}
+	return ResultFromScode(E_NOINTERFACE);
+}
+
+STDMETHODIMP TDataObject::EnumFormatEtc(DWORD dwDirection,
+	IEnumFORMATETC __RPC_FAR *__RPC_FAR *ppenumFormatEtc) {
+	if (ppenumFormatEtc == NULL)
+		return E_POINTER;
+
+	*ppenumFormatEtc = NULL;
+	switch(dwDirection) {
+	case DATADIR_GET:
+		*ppenumFormatEtc = new EnumFORMATETC(m_vfmtetc);
+		if (*ppenumFormatEtc == NULL)
+			return E_OUTOFMEMORY;
+		(*ppenumFormatEtc)->AddRef();
+		break;
+
+	case DATADIR_SET:
+	default:
+		return E_NOTIMPL;
+	}
+
+	return S_OK;
+}
+
+HRESULT STDMETHODCALLTYPE TDataObject::GetData(FORMATETC * pFormatetc,
+	STGMEDIUM * pmedium) {
+	if (pFormatetc->cfFormat != CF_HDROP || pFormatetc->tymed != TYMED_HGLOBAL)
+		return E_NOTIMPL;
+
+	int so_buff = GlobalSize(m_hglobal);
+	HGLOBAL hglobal = GlobalAlloc(GMEM_SHARE | GHND | GMEM_ZEROINIT, so_buff);
+	char *dp = (char*)GlobalLock(hglobal);
+	char *sp = (char*)GlobalLock(m_hglobal);
+	memcpy(dp, sp, so_buff);
+	GlobalUnlock(sp);
+	GlobalUnlock(dp);
+
+	pmedium->hGlobal = hglobal;
+	pmedium->tymed = TYMED_HGLOBAL;
+	pmedium->pUnkForRelease = NULL;
+
+	return S_OK;
+}
+
+HRESULT STDMETHODCALLTYPE TDataObject::QueryGetData(FORMATETC * pFormatetc) {
+	switch(pFormatetc->cfFormat) {
+	case CF_HDROP:
+		return S_OK;
+	default:
+		break;
+	}
+	return E_NOTIMPL;
+}
+
+void TDataObject::set_hglobal(HGLOBAL hglobal) {
+	m_hglobal = hglobal;
+}
+
+HDROP CreateHDrop(TStringList *files) {
+	int dropSize = sizeof(DROPFILES);
+	int bufferSize = dropSize;
+	for (int i = 0; i < files->Count; i++) {
+		bufferSize += files->Strings[i].Length() * 2 + 2;
+	}
+	HDROP hglobal = (HDROP)GlobalAlloc(GMEM_SHARE | GHND | GMEM_ZEROINIT,
+		bufferSize + 2);
+	DROPFILES *dropdat = (DROPFILES*)GlobalLock(hglobal);
+	dropdat->pFiles = sizeof(DROPFILES);
+	dropdat->fWide = 1;
+	WCHAR *pData = (WCHAR*)(((char*)dropdat) + dropSize);
+
+	for (int i = 0; i < files->Count; i++) {
+		WCHAR *pStr = files->Strings[i].w_str();
+		int len = wcslen(pStr);
+		wcscpy(pData, pStr);
+		pData[len] = 0;
+		pData = pData + len + 1;
+	}
+	*pData = 0;
+
+	GlobalUnlock(hglobal);
+	return hglobal;
+}
+
+int TDropSource::StartDrag() {
+	TDataObject *dob = new TDataObject;
+	dob->AddRef();
+	FORMATETC etc = {
+		CF_HDROP, NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL
+	};
+	dob->m_vfmtetc.push_back(etc);
+	dob->set_hglobal(CreateHDrop(Files));
+
+	DWORD ok_effect = DROPEFFECT_COPY | DROPEFFECT_MOVE;
+	DWORD res_effect = 0;
+	int dragret = DoDragDrop(dob, this, ok_effect, &res_effect);
+
+	dob->Release();
+
+	if (dragret == DRAGDROP_S_DROP) {
+		switch(res_effect) {
+		case DROPEFFECT_COPY:
+			return 1;
+		case DROPEFFECT_MOVE:
+			return 2;
+		default:
+			return 0;
+		}
+	}
+	Files->Clear();
+	return 0;
+}
+
+TStringList *TDropSource::GetFiles() {
+	return m_Files;
+}
+
+TDropTarget::TDropTarget(HWND hwnd) {
+	OnDragEnter = NULL;
+	OnDragOver = NULL;
+	OnDragDrop = NULL;
+	OnDragLeave = NULL;
+	m_lRefCount = 1;
+	m_hWnd = hwnd;
+	m_fAllowDrop = false;
+	m_Files = new TStringList;
+	CoLockObjectExternal(this, TRUE, FALSE);
+	RegisterDragDrop(hwnd, this);
+}
+
+TDropTarget::~TDropTarget() {
+	RevokeDragDrop(m_hWnd);
+	CoLockObjectExternal(this, FALSE, TRUE);
+	delete m_Files;
+}
+
+void PositionCursor(HWND hwndEdit, POINTL point) {
+	DWORD curpos;
+
+	// get the character position of mouse
+	ScreenToClient(hwndEdit, (POINT*) & point);
+	curpos = SendMessage(hwndEdit, EM_CHARFROMPOS, 0,
+		MAKELPARAM(point.x, point.y));
+
+	// set cursor position
+	SendMessage(hwndEdit, EM_SETSEL, LOWORD(curpos), LOWORD(curpos));
+}
+
+HRESULT __stdcall TDropTarget::QueryInterface(REFIID iid, void ** ppvObject) {
+	if (iid == IID_IDropTarget || iid == IID_IUnknown) {
+		AddRef();
+		*ppvObject = this;
+		return S_OK;
+	}
+	else {
+		*ppvObject = 0;
+		return E_NOINTERFACE;
+	}
+}
+
+ULONG __stdcall TDropTarget::AddRef(void) {
+	return InterlockedIncrement(&m_lRefCount);
+}
+
+ULONG __stdcall TDropTarget::Release(void) {
+	LONG count = InterlockedDecrement(&m_lRefCount);
+
+	if (count == 0) {
+		delete this;
+		return 0;
+	}
+	else {
+		return count;
+	}
+}
+
+bool TDropTarget::QueryDataObject(IDataObject *pDataObject) {
+	FORMATETC fmtetc = {
+		CF_HDROP, 0, DVASPECT_CONTENT, -1, TYMED_HGLOBAL
+	};
+	return pDataObject->QueryGetData(&fmtetc) == S_OK ? true : false;
+}
+
+DWORD TDropTarget::DropEffect(DWORD keyState, POINTL point, DWORD dwAllowed) {
+	DWORD dwEffect = 0;
+	if (keyState & MK_CONTROL) {
+		dwEffect = dwAllowed & DROPEFFECT_COPY;
+	}
+	else if (keyState & MK_SHIFT) {
+		dwEffect = dwAllowed & DROPEFFECT_MOVE;
+	}
+	if (dwEffect == 0) {
+		if (dwAllowed & DROPEFFECT_COPY)
+			dwEffect = DROPEFFECT_COPY;
+		if (dwAllowed & DROPEFFECT_MOVE)
+			dwEffect = DROPEFFECT_MOVE;
+	}
+
+	return dwEffect;
+}
+
+HRESULT __stdcall TDropTarget::DragEnter(IDataObject *pDataObject,
+	DWORD keyState, POINTL point, DWORD *effect) {
+	m_pDataObject = pDataObject;
+	if (OnDragEnter)
+		OnDragEnter(this, pDataObject, keyState, point, effect);
+	return S_OK;
+}
+
+HRESULT __stdcall TDropTarget::DragOver(DWORD keyState, POINTL point,
+	DWORD *effect) {
+	m_fAllowDrop = QueryDataObject(m_pDataObject);
+
+	if (m_fAllowDrop) {
+		*effect = DropEffect(keyState, point, *effect);
+	}
+	else {
+		*effect = DROPEFFECT_NONE;
+	}
+	if (OnDragOver)
+		OnDragOver(this, NULL, keyState, point, effect);
+	return S_OK;
+}
+
+HRESULT __stdcall TDropTarget::DragLeave(void) {
+	if (OnDragLeave)
+		OnDragLeave(this);
+	return S_OK;
+}
+
+HRESULT __stdcall TDropTarget::Drop(IDataObject *pDataObject, DWORD keyState,
+	POINTL point, DWORD *effect) {
+	m_pDataObject = pDataObject;
+	if (OnDragDrop) {
+		OnDragDrop(this, pDataObject, keyState, point, effect);
+		Files->Clear();
+	}
+	return S_OK;
+}
+
+void AcceptClipboardFiles(HDROP hdrop, TStringList *list) {
+	WCHAR buf[MAX_PATH];
+	int count = DragQueryFileW(hdrop, 0xFFFFFFFF, buf, MAX_PATH);
+	for (int t = 0; t < count; t++) {
+		DragQueryFileW(hdrop, t, buf, MAX_PATH);
+		list->Add(buf);
+	}
+}
+
+TStringList *TDropTarget::GetFiles() {
+	FORMATETC fmtetc = {
+		CF_HDROP, 0, DVASPECT_CONTENT, -1, TYMED_HGLOBAL
+	};
+	STGMEDIUM stgmed;
+
+	if (m_pDataObject->QueryGetData(&fmtetc) == S_OK) {
+		if (m_pDataObject->GetData(&fmtetc, &stgmed) == S_OK) {
+			HDROP data = (HDROP)GlobalLock(stgmed.hGlobal);
+			m_Files->Clear();
+			AcceptClipboardFiles(data, m_Files);
+
+			GlobalUnlock(stgmed.hGlobal);
+			ReleaseStgMedium(&stgmed);
+		}
+	}
+	return m_Files;
+}
+
+#pragma package(smart_init)
