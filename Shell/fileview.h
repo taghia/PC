@@ -1056,7 +1056,13 @@ protected:
 			}
 		}
 		if (IsNewObject(obj) && Column == colName)
+		{
 			Canvas->Font->Style = TFontStyles() << fsBold;
+			Canvas->Font->Quality = TFontQuality::fqClearType;
+			//Canvas->Font->Color = clBlue;
+			//Canvas->Font->Size -= 0.5;
+		}
+		//Canvas->Font->Quality = TFontQuality::fqClearType;
 		TVirtualStringTree::DoPaintText(Node, Canvas, Column, TextType);
 	}
 

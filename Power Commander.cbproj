@@ -13,13 +13,13 @@
     <PropertyGroup Condition="'$(Config)'=='Base' or '$(Base)'!=''">
         <Base>true</Base>
     </PropertyGroup>
-    <PropertyGroup Condition="('$(Platform)'=='Win64' and '$(Base)'=='true') or '$(Base_Win64)'!=''">
-        <Base_Win64>true</Base_Win64>
+    <PropertyGroup Condition="('$(Platform)'=='Win32' and '$(Base)'=='true') or '$(Base_Win32)'!=''">
+        <Base_Win32>true</Base_Win32>
         <CfgParent>Base</CfgParent>
         <Base>true</Base>
     </PropertyGroup>
-    <PropertyGroup Condition="('$(Platform)'=='Win32' and '$(Base)'=='true') or '$(Base_Win32)'!=''">
-        <Base_Win32>true</Base_Win32>
+    <PropertyGroup Condition="('$(Platform)'=='Win64' and '$(Base)'=='true') or '$(Base_Win64)'!=''">
+        <Base_Win64>true</Base_Win64>
         <CfgParent>Base</CfgParent>
         <Base>true</Base>
     </PropertyGroup>
@@ -28,14 +28,14 @@
         <CfgParent>Base</CfgParent>
         <Base>true</Base>
     </PropertyGroup>
-    <PropertyGroup Condition="('$(Platform)'=='Win64' and '$(Cfg_1)'=='true') or '$(Cfg_1_Win64)'!=''">
-        <Cfg_1_Win64>true</Cfg_1_Win64>
+    <PropertyGroup Condition="('$(Platform)'=='Win32' and '$(Cfg_1)'=='true') or '$(Cfg_1_Win32)'!=''">
+        <Cfg_1_Win32>true</Cfg_1_Win32>
         <CfgParent>Cfg_1</CfgParent>
         <Cfg_1>true</Cfg_1>
         <Base>true</Base>
     </PropertyGroup>
-    <PropertyGroup Condition="('$(Platform)'=='Win32' and '$(Cfg_1)'=='true') or '$(Cfg_1_Win32)'!=''">
-        <Cfg_1_Win32>true</Cfg_1_Win32>
+    <PropertyGroup Condition="('$(Platform)'=='Win64' and '$(Cfg_1)'=='true') or '$(Cfg_1_Win64)'!=''">
+        <Cfg_1_Win64>true</Cfg_1_Win64>
         <CfgParent>Cfg_1</CfgParent>
         <Cfg_1>true</Cfg_1>
         <Base>true</Base>
@@ -45,14 +45,14 @@
         <CfgParent>Base</CfgParent>
         <Base>true</Base>
     </PropertyGroup>
-    <PropertyGroup Condition="('$(Platform)'=='Win64' and '$(Cfg_2)'=='true') or '$(Cfg_2_Win64)'!=''">
-        <Cfg_2_Win64>true</Cfg_2_Win64>
+    <PropertyGroup Condition="('$(Platform)'=='Win32' and '$(Cfg_2)'=='true') or '$(Cfg_2_Win32)'!=''">
+        <Cfg_2_Win32>true</Cfg_2_Win32>
         <CfgParent>Cfg_2</CfgParent>
         <Cfg_2>true</Cfg_2>
         <Base>true</Base>
     </PropertyGroup>
-    <PropertyGroup Condition="('$(Platform)'=='Win32' and '$(Cfg_2)'=='true') or '$(Cfg_2_Win32)'!=''">
-        <Cfg_2_Win32>true</Cfg_2_Win32>
+    <PropertyGroup Condition="('$(Platform)'=='Win64' and '$(Cfg_2)'=='true') or '$(Cfg_2_Win64)'!=''">
+        <Cfg_2_Win64>true</Cfg_2_Win64>
         <CfgParent>Cfg_2</CfgParent>
         <Cfg_2>true</Cfg_2>
         <Base>true</Base>
@@ -83,12 +83,6 @@
         <BCC_ExtendedErrorInfo>true</BCC_ExtendedErrorInfo>
         <ILINK_TranslatedLibraryPath>$(BDS)\lib\$(LANGDIR)</ILINK_TranslatedLibraryPath>
     </PropertyGroup>
-    <PropertyGroup Condition="'$(Base_Win64)'!=''">
-        <Manifest_File>$(BDS)\bin\default_app.manifest</Manifest_File>
-        <Defines>COMPILER_5_UP;COMPILER_6_UP;COMPILER_7_UP;COMPILER_8_UP;COMPILER_9_UP;COMPILER_10_UP;COMPILER_11_UP;COMPILER_12_UP;COMPILER_13_UP;COMPILER_14_UP;$(Defines)</Defines>
-        <IncludePath>$(BDSINCLUDE)\windows\vcl;$(IncludePath)</IncludePath>
-        <Icon_MainIcon>Power Commander_Icon.ico</Icon_MainIcon>
-    </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Win32)'!=''">
         <DCC_Namespace>Winapi;System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;Bde;$(DCC_Namespace)</DCC_Namespace>
         <Defines>COMPILER_5_UP;COMPILER_6_UP;COMPILER_7_UP;COMPILER_8_UP;COMPILER_9_UP;COMPILER_10_UP;COMPILER_11_UP;COMPILER_12_UP;COMPILER_13_UP;COMPILER_14_UP;$(Defines)</Defines>
@@ -96,6 +90,14 @@
         <Manifest_File>$(BDS)\bin\default_app.manifest</Manifest_File>
         <IncludePath>$(BDSINCLUDE)\windows\vcl;$(IncludePath)</IncludePath>
         <VerInfo_Locale>1033</VerInfo_Locale>
+        <Icon_MainIcon>Power Commander_Icon.ico</Icon_MainIcon>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Base_Win64)'!=''">
+        <DCC_Namespace>Winapi;System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;$(DCC_Namespace)</DCC_Namespace>
+        <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
+        <Manifest_File>$(BDS)\bin\default_app.manifest</Manifest_File>
+        <Defines>COMPILER_5_UP;COMPILER_6_UP;COMPILER_7_UP;COMPILER_8_UP;COMPILER_9_UP;COMPILER_10_UP;COMPILER_11_UP;COMPILER_12_UP;COMPILER_13_UP;COMPILER_14_UP;$(Defines)</Defines>
+        <IncludePath>$(BDSINCLUDE)\windows\vcl;$(IncludePath)</IncludePath>
         <Icon_MainIcon>Power Commander_Icon.ico</Icon_MainIcon>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_1)'!=''">
@@ -116,10 +118,10 @@
         <BCC_SourceDebuggingOn>true</BCC_SourceDebuggingOn>
         <ILINK_TranslatedLibraryPath>$(BDS)\lib\$(LANGDIR)\debug;$(ILINK_TranslatedLibraryPath)</ILINK_TranslatedLibraryPath>
     </PropertyGroup>
-    <PropertyGroup Condition="'$(Cfg_1_Win64)'!=''">
+    <PropertyGroup Condition="'$(Cfg_1_Win32)'!=''">
         <Defines>_DEBUG;$(Defines)</Defines>
     </PropertyGroup>
-    <PropertyGroup Condition="'$(Cfg_1_Win32)'!=''">
+    <PropertyGroup Condition="'$(Cfg_1_Win64)'!=''">
         <Defines>_DEBUG;$(Defines)</Defines>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2)'!=''">
@@ -128,10 +130,10 @@
         <TASM_Debugging>None</TASM_Debugging>
         <ILINK_TranslatedLibraryPath>$(BDS)\lib\$(LANGDIR)\release;$(ILINK_TranslatedLibraryPath)</ILINK_TranslatedLibraryPath>
     </PropertyGroup>
-    <PropertyGroup Condition="'$(Cfg_2_Win64)'!=''">
+    <PropertyGroup Condition="'$(Cfg_2_Win32)'!=''">
         <Defines>NDEBUG;$(Defines)</Defines>
     </PropertyGroup>
-    <PropertyGroup Condition="'$(Cfg_2_Win32)'!=''">
+    <PropertyGroup Condition="'$(Cfg_2_Win64)'!=''">
         <Defines>NDEBUG;$(Defines)</Defines>
     </PropertyGroup>
     <ItemGroup>
@@ -144,6 +146,9 @@
         <ResFiles Include="Power Commander.res">
             <BuildOrder>1</BuildOrder>
         </ResFiles>
+        <CppCompile Include="shamsidate.cpp">
+            <BuildOrder>17</BuildOrder>
+        </CppCompile>
         <DelphiCompile Include="Shell\Cromis.DirectoryWatch.pas">
             <BuildOrder>19</BuildOrder>
         </DelphiCompile>
@@ -164,6 +169,12 @@
         <DelphiCompile Include="Shell\VirtualTrees.pas">
             <BuildOrder>14</BuildOrder>
         </DelphiCompile>
+        <CppCompile Include="text.cpp">
+            <BuildOrder>20</BuildOrder>
+        </CppCompile>
+        <None Include="text.h">
+            <BuildOrder>16</BuildOrder>
+        </None>
         <CppCompile Include="uAddBtn.cpp">
             <Form>frmAddBtn</Form>
             <DependentOn>uAddBtn.h</DependentOn>
@@ -207,26 +218,17 @@
             <DependentOn>uUserActions.h</DependentOn>
             <BuildOrder>15</BuildOrder>
         </CppCompile>
-        <None Include="text.h">
-            <BuildOrder>16</BuildOrder>
-        </None>
-        <CppCompile Include="shamsidate.cpp">
-            <BuildOrder>17</BuildOrder>
-        </CppCompile>
-        <CppCompile Include="text.cpp">
-            <BuildOrder>20</BuildOrder>
-        </CppCompile>
         <CppCompile Include="winutils.cpp">
             <DependentOn>winutils.h</DependentOn>
             <BuildOrder>14</BuildOrder>
         </CppCompile>
         <FormResources Include="uSearch.dfm"/>
-        <FormResources Include="uMain.dfm"/>
-        <FormResources Include="uUserActions.dfm"/>
-        <FormResources Include="uRename.dfm"/>
-        <FormResources Include="uConsole.dfm"/>
         <FormResources Include="uRun.dfm"/>
+        <FormResources Include="uMain.dfm"/>
+        <FormResources Include="uRename.dfm"/>
+        <FormResources Include="uUserActions.dfm"/>
         <FormResources Include="uAddBtn.dfm"/>
+        <FormResources Include="uConsole.dfm"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>
