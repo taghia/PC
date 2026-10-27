@@ -1233,15 +1233,14 @@ void __fastcall TfrmMain::actMoveExecute(TObject *Sender) {
 
 // ---------------------------------------------------------------------------
 void __fastcall TfrmMain::actCopyExecute(TObject *Sender) {
-	activeView()->copy();
-	inactiveView()->paste();
-//	activeView()->doCopy(inactiveView()->Directory);
+	activeView()->doCopy(inactiveView()->Directory);
+	inactiveView()->refresh();
 }
 // ---------------------------------------------------------------------------
 
 void __fastcall TfrmMain::actDuplicateExecute(TObject *Sender) {
-	activeView()->copy();
-	activeView()->paste();
+	activeView()->doCopy(activeView()->Directory);
+	activeView()->refresh();
 }
 // ---------------------------------------------------------------------------
 

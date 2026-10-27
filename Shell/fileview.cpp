@@ -719,9 +719,10 @@ void TFileView::paste(String dst) {
 		ids.addItem(Files->items[i]->id);
 	}
 	lockUpdate = true;
+	Notifications->clear();
 	if(dst == "") dst = Directory;
 	TNamespace *ns = new TNamespace(dst);
-	ns->Paste(CreateRootNamespaceArray(dst));
+	bool completed = ns->Paste(CreateRootNamespaceArray(dst));
 	ns->Free();
 	reload();
 //	UnselectNodes(GetFirst(), GetLast());
@@ -733,8 +734,10 @@ void TFileView::paste(String dst) {
 //	}
 //	if(GetFirstSelected()) ScrollIntoView(GetFirstSelected(), 0, 0);
 
-	Notifications->clear();
 	lockUpdate = false;
+	if (!completed)
+		MessageDlg("The Shell paste operation could not be completed.",
+			mtError, TMsgDlgButtons() << mbOK, 0);
 }
 
 // ----------------------------------------------------------------------------------------
@@ -745,19 +748,19 @@ void TFileView::copy() {
 }
 
 // ----------------------------------------------------------------------------------------
-void TFileView::doCopy(text dst)
+bool TFileView::doCopy(text dst)
 {
 	array items = getSelectList(true);
-	TStorage *dstStorage = createStorageFromPath(dst);
-	for (int i = 0; i < items.count(); i++) {
-		int pos = items[i].rfind("\\");
-		text name = items[i];
-		if(pos > 0)
-			name = name.substr(pos + 1);
-		data_t data = storage->download(items[i]);
-		dstStorage->upload(dst + name, data);
-	}
-	delete dstStorage;
+	if (!items.count())
+		return false;
+	lockUpdate = true;
+	Notifications->clear();
+	bool completed = storage->copy(items, dst);
+	lockUpdate = false;
+	if (!completed)
+		MessageDlg("The Shell copy operation was cancelled or could not be completed.",
+			mtError, TMsgDlgButtons() << mbOK, 0);
+	return completed;
 }
 
 // ----------------------------------------------------------------------------------------
@@ -1503,12 +1506,15 @@ void TFileView::deleteSelected()
 	lockUpdate = true;
 	HWND hForg = GetForegroundWindow();
 	array selList = getSelectList(true);
-	storage->deleteItems(selList);
-	//RootNamespace->Delete(NamespaceArray);
 	Notifications->clear();
+	bool completed = storage->deleteItems(selList);
+	//RootNamespace->Delete(NamespaceArray);
 	reload();
 	SetForegroundWindow(hForg);
 	lockUpdate = false;
+	if (!completed && GetForegroundWindow() == hForg)
+		MessageDlg("The Shell delete operation was cancelled or could not be completed.",
+			mtError, TMsgDlgButtons() << mbOK, 0);
 }
 //---------------------------------------------------------------------------
 void TFileView::search(TSearchParams *params)

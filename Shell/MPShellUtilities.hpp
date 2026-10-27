@@ -620,7 +620,7 @@ protected:
 	virtual bool __fastcall GetValid(void);
 	HWND __fastcall ParentWnd(void);
 	void __fastcall EnsureDetailCache(void);
-	void __fastcall ExecuteContextMenuVerbMultiPath(System::WideString Verb, TNamespaceArray Namespaces);
+	bool __fastcall ExecuteContextMenuVerbMultiPath(System::WideString Verb, TNamespaceArray Namespaces);
 	void __fastcall LoadCategoryInfo(void);
 	virtual void __fastcall SetFreePIDLOnDestroy(const bool Value);
 	virtual void __fastcall SetIconIndexChanged(const bool Value);

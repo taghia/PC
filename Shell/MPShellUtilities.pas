@@ -859,7 +859,7 @@ type
     function GetValid: Boolean; virtual;
     function ParentWnd: HWnd;
     procedure EnsureDetailCache;
-    procedure ExecuteContextMenuVerbMultiPath(Verb: WideString; Namespaces: TNamespaceArray);
+    function ExecuteContextMenuVerbMultiPath(Verb: WideString; Namespaces: TNamespaceArray): Boolean;
     procedure LoadCategoryInfo;
     procedure SetFreePIDLOnDestroy(const Value: Boolean); virtual;
     procedure SetIconIndexChanged(const Value: Boolean); virtual;
@@ -3061,7 +3061,7 @@ begin
     if VerifyPIDLRelationship(NamespaceArray, True) then
       Result := ExecuteContextMenuVerb('copy', NamespaceToRelativePIDLArray(NamespaceArray))
     else
-      ExecuteContextMenuVerbMultiPath('copy', NamespaceArray)
+      Result := ExecuteContextMenuVerbMultiPath('copy', NamespaceArray)
   end
 end;
 
@@ -3152,7 +3152,7 @@ begin
     if VerifyPIDLRelationship(NamespaceArray, True) then
       Result := ExecuteContextMenuVerb('cut', NamespaceToRelativePIDLArray(NamespaceArray))
     else
-      ExecuteContextMenuVerbMultiPath('cut', NamespaceArray)
+      Result := ExecuteContextMenuVerbMultiPath('cut', NamespaceArray)
   end
 end;
 
@@ -3172,7 +3172,7 @@ begin
     if VerifyPIDLRelationship(NamespaceArray, True) then
       Result := ExecuteContextMenuVerb('delete', NamespaceToRelativePIDLArray(NamespaceArray))
     else
-      ExecuteContextMenuVerbMultiPath('delete', NamespaceArray)
+      Result := ExecuteContextMenuVerbMultiPath('delete', NamespaceArray)
   end
 end;
 
@@ -4318,8 +4318,8 @@ begin
   end;
 end;
 
-procedure TNamespace.ExecuteContextMenuVerbMultiPath(Verb: WideString;
-  Namespaces: TNamespaceArray);
+function TNamespace.ExecuteContextMenuVerbMultiPath(Verb: WideString;
+  Namespaces: TNamespaceArray): Boolean;
 var
   Menu: TCommonShellMultiParentContextMenu;
   ShellFolder: IShellFolder;
@@ -4331,7 +4331,7 @@ begin
   Menu.MsgWnd.Width := 0;
   Menu.MsgWnd.Height := 0;
   Menu.MsgWnd.Visible := True;
-  Menu.ExecuteContextMenuVerb(Menu.MsgWnd, Namespaces, Verb);
+  Result := Menu.ExecuteContextMenuVerb(Menu.MsgWnd, Namespaces, Verb);
   Menu.MsgWnd.Visible := False;
 end;
 
@@ -6541,9 +6541,9 @@ begin
       end else
       begin
         if AsShortCut then
-          ExecuteContextMenuVerbMultiPath('pastelink', NamespaceArray)
+          Result := ExecuteContextMenuVerbMultiPath('pastelink', NamespaceArray)
         else
-          ExecuteContextMenuVerbMultiPath('paste', NamespaceArray)
+          Result := ExecuteContextMenuVerbMultiPath('paste', NamespaceArray)
       end
     end
   end

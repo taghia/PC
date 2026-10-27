@@ -9,7 +9,7 @@
 TStorage* createStorageFromPath(text path)
 {
 	if(path[1] == ':')
-		return (TStorage*) new THdStorage;
+		return new THdStorage;
 	return NULL;
 }
 //---------------------------------------------------------------------------
@@ -83,12 +83,7 @@ TNamespace* THdStorage::getRootNamespace(int index)
 //---------------------------------------------------------------------------
 bool THdStorage::deleteItems(array items)
 {
-	TNamespaceArray nsArray = createNamespaceArray(items);
-	TNamespace *root = new TNamespace("C:\\");
-	root->Delete(nsArray);
-	root->Free();
-	freeNamespaceArray(nsArray);
-	return true;
+	return runFileOperation(items, FO_DELETE);
 }
 //---------------------------------------------------------------------------
 void THdStorage::freeNamespaceArray(TNamespaceArray &nsArr)
@@ -105,11 +100,55 @@ bool THdStorage::renameItem(text oldName, text newName)
 //---------------------------------------------------------------------------
 bool THdStorage::copy(array items, text dstPath)
 {
-	TNamespace *root = new TNamespace("C:\\");
-	TNamespaceArray nsArray = createNamespaceArray(items);
-	root->Copy(nsArray);
-	root->Free();
+	return runFileOperation(items, FO_COPY, dstPath);
+}
+//---------------------------------------------------------------------------
+bool THdStorage::runFileOperation(array items, UINT operation, text dstPath)
+{
+	if (!items.count())
+		return false;
 
+	int fromLength = 1;
+	for (int i = 0; i < items.count(); i++)
+		fromLength += items[i].length() + 1;
+
+	wchar_t *from = new wchar_t[fromLength];
+	wchar_t *fromPos = from;
+	for (int i = 0; i < items.count(); i++) {
+		int itemLength = items[i].length();
+		memcpy(fromPos, items[i].data, itemLength * sizeof(wchar_t));
+		fromPos += itemLength;
+		*fromPos++ = 0;
+	}
+	*fromPos = 0;
+
+	wchar_t *to = NULL;
+	if (operation != FO_DELETE) {
+		int toLength = dstPath.length();
+		to = new wchar_t[toLength + 2];
+		memcpy(to, dstPath.data, toLength * sizeof(wchar_t));
+		to[toLength] = 0;
+		to[toLength + 1] = 0;
+	}
+
+	SHFILEOPSTRUCTW fileOp;
+	ZeroMemory(&fileOp, sizeof(fileOp));
+	fileOp.hwnd = GetActiveWindow();
+	fileOp.wFunc = operation;
+	fileOp.pFrom = from;
+	fileOp.pTo = to;
+	if (operation == FO_DELETE) {
+		if (GetKeyState(VK_SHIFT) >= 0)
+			fileOp.fFlags |= FOF_ALLOWUNDO;
+	}
+	else {
+		fileOp.fFlags |= FOF_NOCONFIRMMKDIR;
+	}
+
+	int result = SHFileOperationW(&fileOp);
+	delete [] to;
+	delete [] from;
+	return result == 0 && !fileOp.fAnyOperationsAborted;
 }
 //---------------------------------------------------------------------------
 data_t THdStorage::download(text itemName)

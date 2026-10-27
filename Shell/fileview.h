@@ -1214,7 +1214,7 @@ public:
 	static TGlobalMon *globalMon;
 	static bool useShamsiDate;
 	void copy();
-	void doCopy(text dst);
+	bool doCopy(text dst);
 	void paste(String dst = "");
 	void cut();
 	void refresh();

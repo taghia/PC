@@ -45,12 +45,13 @@ public:
 	virtual bool copy(array items, text dstPath) = 0;
 };
 //---------------------------------------------------------------------------
-class THdStorage
+class THdStorage : public TStorage
 {
 protected:
 	TNamespaceArray createNamespaceArray(array files);
 	TNamespace *getRootNamespace(int index);
 	void freeNamespaceArray(TNamespaceArray &nsArr);
+	bool runFileOperation(array items, UINT operation, text dstPath = "");
 	TNamespace *m_RootNamespace;
 public:
 	THdStorage();
