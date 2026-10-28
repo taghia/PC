@@ -660,9 +660,9 @@ void TFileView::Execute(String params, int index) {
     String fileName = FileName[index];
 	String verb = "open";
 
-    SetCurrentDir(Directory);
+	//SetCurrentDir(Directory);
 	ShellExecuteW(NULL, verb.w_str(), fileName.w_str(), params.w_str(),
-		L"", SW_SHOWNORMAL);
+		Directory.c_str(), SW_SHOWNORMAL);
 
 	// if(wlRecent->IndexOf(pathfilename) == -1 && (int)result > 32)
 	// wlRecent->Add(pathfilename);

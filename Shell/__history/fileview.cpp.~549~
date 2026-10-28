@@ -360,7 +360,15 @@ TFileObject* TFileView::GetFileObject(int index) {
 	}
 	return objectOf(getNode(index));
 }
-
+// ---------------------------------------------------------------------------
+String TFileObject::GetFace()
+{
+	text fileName = FileName;
+	int pos = fileName.rfind(".");
+	if(pos > -1)
+		fileName = fileName.substr(0, pos);
+	return fileName;
+}
 // ---------------------------------------------------------------------------
 String TFileObject::GetDateTime(TDateKind type, bool shamsi) {
 	wchar_t date[50];
@@ -649,10 +657,12 @@ void TFileView::Execute(String params, int index) {
 		return;
 	String pathfilename, path = FileObject[index]->Path;
 	pathfilename = PathFileName[index];
+    String fileName = FileName[index];
 	String verb = "open";
 
-	ShellExecuteW(NULL, verb.w_str(), pathfilename.w_str(), params.w_str(),
-		Directory.c_str(), SW_SHOWNORMAL);
+	//SetCurrentDir(Directory);
+	ShellExecuteW(NULL, verb.w_str(), fileName.w_str(), params.w_str(),
+		Directory, SW_SHOWNORMAL);
 
 	// if(wlRecent->IndexOf(pathfilename) == -1 && (int)result > 32)
 	// wlRecent->Add(pathfilename);
@@ -709,9 +719,10 @@ void TFileView::paste(String dst) {
 		ids.addItem(Files->items[i]->id);
 	}
 	lockUpdate = true;
+	Notifications->clear();
 	if(dst == "") dst = Directory;
 	TNamespace *ns = new TNamespace(dst);
-	ns->Paste(CreateRootNamespaceArray(dst));
+	bool completed = ns->Paste(CreateRootNamespaceArray(dst));
 	ns->Free();
 	reload();
 //	UnselectNodes(GetFirst(), GetLast());
@@ -723,8 +734,10 @@ void TFileView::paste(String dst) {
 //	}
 //	if(GetFirstSelected()) ScrollIntoView(GetFirstSelected(), 0, 0);
 
-	Notifications->clear();
 	lockUpdate = false;
+	if (!completed)
+		MessageDlg("The Shell paste operation could not be completed.",
+			mtError, TMsgDlgButtons() << mbOK, 0);
 }
 
 // ----------------------------------------------------------------------------------------
@@ -735,19 +748,19 @@ void TFileView::copy() {
 }
 
 // ----------------------------------------------------------------------------------------
-void TFileView::doCopy(text dst)
+bool TFileView::doCopy(text dst)
 {
 	array items = getSelectList(true);
-	TStorage *dstStorage = createStorageFromPath(dst);
-	for (int i = 0; i < items.count(); i++) {
-		int pos = items[i].rfind("\\");
-		text name = items[i];
-		if(pos > 0)
-			name = name.substr(pos + 1);
-		data_t data = storage->download(items[i]);
-		dstStorage->upload(dst + name, data);
-	}
-	delete dstStorage;
+	if (!items.count())
+		return false;
+	lockUpdate = true;
+	Notifications->clear();
+	bool completed = storage->copy(items, dst);
+	lockUpdate = false;
+	if (!completed)
+		MessageDlg("The Shell copy operation was cancelled or could not be completed.",
+			mtError, TMsgDlgButtons() << mbOK, 0);
+	return completed;
 }
 
 // ----------------------------------------------------------------------------------------
@@ -935,7 +948,8 @@ void TFileView::ApplyNotifications()
 	if(notify)
 	{
 		//Beep(1000, 39);
-		reload();
+		if(!IsEditing())
+			reload();
 		if(onNotify) onNotify(this);
 	}
 }
@@ -1009,9 +1023,9 @@ TModifyType TFileView::DetectModifyType(TFileObject *oldObj, TFileObject *newObj
 {
 	TModifyType result = mtNone;
 	if(oldObj->Size != newObj->Size) result = mtSize;
-	else if(oldObj->Attribute != newObj->Attribute) result = mtAttribute;
-	else if(oldObj->GetDate(dkCreated) != newObj->GetDate(dkCreated)) result = mtCreationTime;
-	else if(oldObj->GetDate(dkModified) != newObj->GetDate(dkModified)) result = mtLastWriteTime;
+	else if(CompareStr(oldObj->Attribute, newObj->Attribute) != 0) result = mtAttribute;
+	else if(CompareStr(oldObj->GetDate(dkCreated), newObj->GetDate(dkCreated)) != 0) result = mtCreationTime;
+	else if(CompareStr(oldObj->GetDate(dkModified), newObj->GetDate(dkModified)) != 0) result = mtLastWriteTime;
 	return result;
 }
 //---------------------------------------------------------------------------
@@ -1166,7 +1180,7 @@ bool __fastcall TFileView::DoDragOver(System::TObject* Source,
 	TStringList *files = getDataObjectFiles();
 	if(!files->Count) return true; //Drag From WinRar Or ..
 	if((col == colName) && obj) {
-		if(files->Strings[0] == Directory + obj->FileName) return false;
+		if(CompareStr(files->Strings[0], Directory + obj->FileName) == 0) return false;
 		if(obj->Ext == ".exe") return true;
 		return obj->IsDirectory();
 	}
@@ -1372,7 +1386,7 @@ void __fastcall TFileView::wndProc(Messages::TMessage &Message)
 void TFileView::reload()
 {
 	TUpdateLock updateLock(this);
-	if(!DirectoryExists(Directory)) {
+	if(!Sysutils::DirectoryExists(Directory)) {
 		up();
 		return;
 	}
@@ -1492,12 +1506,15 @@ void TFileView::deleteSelected()
 	lockUpdate = true;
 	HWND hForg = GetForegroundWindow();
 	array selList = getSelectList(true);
-	storage->deleteItems(selList);
-	//RootNamespace->Delete(NamespaceArray);
 	Notifications->clear();
+	bool completed = storage->deleteItems(selList);
+	//RootNamespace->Delete(NamespaceArray);
 	reload();
 	SetForegroundWindow(hForg);
 	lockUpdate = false;
+	if (!completed && GetForegroundWindow() == hForg)
+		MessageDlg("The Shell delete operation was cancelled or could not be completed.",
+			mtError, TMsgDlgButtons() << mbOK, 0);
 }
 //---------------------------------------------------------------------------
 void TFileView::search(TSearchParams *params)
@@ -1577,21 +1594,21 @@ bool TFileView::itemFound(TFileObject *obj, TSearchParams *params)
 		if(param->type & ptText)
 		{
 			if(param->text.contains("*"))
-				result &= fileName.wciCompare(param->text);
+				result = result && fileName.wciCompare(param->text);
 			else
-				result &= fileName.contains(param->text);
+				result = result && fileName.contains(param->text);
 		}
 		if(!result) break;
 		if(param->type & ptSize)
 		{
-			result &= ((obj->Size <= param->sizeMax || param->sizeMax == -1) &&
+			result = result && ((obj->Size <= param->sizeMax || param->sizeMax == -1) &&
 				(obj->Size >= param->sizeMin || param->sizeMin == -1));
 		}
 		if(!result) break;
 		if(param->type & ptDate)
 		{
 			TDateTime dt = obj->GetVclDateTime(dkModified);
-			result &= ((dt <= param->dateMax || param->dateMax.Val == -1) &&
+			result = result && ((dt <= param->dateMax || param->dateMax.Val == -1) &&
 				(dt >= param->dateMin || param->dateMin.Val == -1));
 		}
 		if(!result) break;
@@ -1603,14 +1620,14 @@ bool TFileView::itemFound(TFileObject *obj, TSearchParams *params)
 				//char *str = new char[param->content.length() + 1];
 				int index = fileSearch(obj->Path + obj->FileName, (char*)param->content.t_str(), param->content.length());
 				//delete [] str;
-				result &= (index != -1);
+				result = result && (index != -1);
 			}
 		}
 		if(!result) break;
 		if((param->type & ptBuffer) && !obj->IsDirectory())
 		{
 			int index = fileSearch(obj->Path + obj->FileName, param->buffer, param->bufferLen);
-			result &= (index != -1);
+			result = result && (index != -1);
 		}
 	}
 	end:
