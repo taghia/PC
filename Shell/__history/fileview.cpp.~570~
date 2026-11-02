@@ -662,7 +662,7 @@ void TFileView::Execute(String params, int index) {
 
 	//SetCurrentDir(Directory);
 	ShellExecuteW(NULL, verb.w_str(), fileName.w_str(), params.w_str(),
-		Directory, SW_SHOWNORMAL);
+		Directory.c_str(), SW_SHOWNORMAL);
 
 	// if(wlRecent->IndexOf(pathfilename) == -1 && (int)result > 32)
 	// wlRecent->Add(pathfilename);
@@ -1650,4 +1650,13 @@ void __fastcall TFileView::onDropAction(TObject *sender)
 	mi->GetParentMenu()->Tag = mi->Tag;
 }
 //---------------------------------------------------------------------------
+void __fastcall TFileView::CMMouseEnter(Winapi::Messages::TMessage &Message)
+{
+	//Beep(1000, 100);
+	TWindow(Parent->Parent->Parent->Parent->Handle).NoActivate = true;
+}
+void __fastcall TFileView::CMMouseLeave(Winapi::Messages::TMessage &Message)
+{
+	TWindow(Parent->Parent->Parent->Parent->Handle).NoActivate = false;
+}
 

@@ -1,5 +1,5 @@
 ﻿[Closed Files]
-File_0=TSourceModule,'C:\Projects\PC5\uMain.cpp',0,1,1,72,14,0,0,,
+File_0=TSourceModule,'C:\Projects\PC5\Shell\VirtualTrees.hpp',0,1,2515,1,2527,0,0,,
 File_1=TSourceModule,'C:\Projects\PC5\Shell\MPShellTypes.hpp',0,1,982,45,995,0,0,,
 File_2=TSourceModule,'C:\Projects\PC5\Shell\MPShellUtilities.pas',0,1,56,14,69,0,0,,
 File_3=TSourceModule,'c:\program files (x86)\embarcadero\rad studio\11.0\include\windows\sdk\winuser.h',0,1,5262,31,5280,0,0,,
@@ -12,16 +12,42 @@ File_9=TSourceModule,'D:\!Mht\Projects\QB4\Typography\Export.cpp',0,1,1,70,17,0,
 File_10=TSourceModule,'D:\!Mht\Projects\QB4\Typography\ComObjectManager.cpp',0,1,116,1,123,0,0,,
 File_11=TSourceModule,'D:\!Mht\Projects\QB4\Typography\ApplicationHandler.cpp',0,1,1514,1,1528,0,0,,
 File_12=TSourceModule,'D:\!Mht\Projects\QB4\PatchTools.cpp',0,1,1,1,1,0,0,,
-File_13=TSourceModule,'D:\!Mht\Projects\QB4\tools.cpp',0,1,1,1,1,0,0,,
-File_14=TSourceModule,'D:\!Mht\Projects\QB4\Typography\uTypography.cpp',0,1,502,15,528,0,0,,
 
 [Modules]
-Count=0
+Module0=C:\Projects\PC5\Shell\fileview.cpp
+Module1=c:\program files (x86)\embarcadero\rad studio\11.0\include\windows\rtl\System.UITypes.hpp
+Module2=c:\program files (x86)\embarcadero\rad studio\11.0\include\windows\vcl\Vcl.Graphics.hpp
+Module3=C:\Projects\PC5\uMain.cpp
+Count=4
 EditWindowCount=1
 
+[C:\Projects\PC5\Shell\fileview.cpp]
+ModuleType=TSourceModule
+FormState=0
+FormOnTop=0
+
+[c:\program files (x86)\embarcadero\rad studio\11.0\include\windows\rtl\System.UITypes.hpp]
+ModuleType=TSourceModule
+FormState=0
+FormOnTop=0
+
+[c:\program files (x86)\embarcadero\rad studio\11.0\include\windows\vcl\Vcl.Graphics.hpp]
+ModuleType=TSourceModule
+FormState=0
+FormOnTop=0
+
+[C:\Projects\PC5\uMain.cpp]
+ModuleType=TSourceModule
+FormState=1
+FormOnTop=0
+
 [EditWindow0]
-ViewCount=0
-CurrentView=-1
+ViewCount=4
+CurrentEditView=C:\Projects\PC5\Shell\fileview.cpp
+View0=0
+View1=1
+View2=2
+View3=3
 PercentageSizes=1
 Create=1
 Visible=1
@@ -47,9 +73,53 @@ RightPanelData=000008000101000000009E1200000000000001CF0700000000000001000000004
 BottomPanelSize=0
 BottomPanelClients=DockSite1
 BottomPanelData=0000080001000100000009000000446F636B53697465317A45000000000000000D06000000000000FFFFFFFF
-BottomMiddlePanelSize=2044
+BottomMiddlePanelSize=2266
 BottomMiddlePanelClients=DockSite0,MessageView
-BottomMiddelPanelData=0000080001010100000009000000446F636B53697465307D0400000000000001AD170000000000000100000000FC0700000F0000004D65737361676556696577466F726DFFFFFFFF
+BottomMiddelPanelData=0000080001000100000009000000446F636B5369746530E204000000000000001D2A0000000000000100000000E20400000F0000004D65737361676556696577466F726DFFFFFFFF
+
+[View0]
+CustomEditViewType=TEditView
+Module=C:\Projects\PC5\Shell\fileview.cpp
+CursorX=61
+CursorY=11
+TopLine=1
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\Projects\PC5\Shell\fileview.h
+
+[View1]
+CustomEditViewType=TEditView
+Module=c:\program files (x86)\embarcadero\rad studio\11.0\include\windows\rtl\System.UITypes.hpp
+CursorX=151
+CursorY=92
+TopLine=80
+LeftCol=63
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\rad studio\11.0\include\windows\rtl\System.UITypes.hpp
+
+[View2]
+CustomEditViewType=TEditView
+Module=c:\program files (x86)\embarcadero\rad studio\11.0\include\windows\vcl\Vcl.Graphics.hpp
+CursorX=45
+CursorY=314
+TopLine=302
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\rad studio\11.0\include\windows\vcl\Vcl.Graphics.hpp
+
+[View3]
+CustomEditViewType=TEditView
+Module=C:\Projects\PC5\uMain.cpp
+CursorX=5
+CursorY=987
+TopLine=974
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\Projects\PC5\uMain.cpp
 
 [Watches]
 Count=0
@@ -132,12 +202,12 @@ State=0
 Left=0
 Top=23
 Width=6061
-Height=1841
+Height=2074
 MaxLeft=-1
 MaxTop=-1
 ClientWidth=6061
-ClientHeight=1841
-TBDockHeight=1841
+ClientHeight=2074
+TBDockHeight=2074
 LRDockWidth=2767
 Dockable=1
 StayOnTop=0

@@ -931,9 +931,15 @@ protected:
 	TStringEditLink *editLink;
 	TStorage *storage;
 
+	TWinControl* getParentForm();
 	DYNAMIC void __fastcall DblClick(void);
-
-	virtual void __fastcall PaintSelectionRectangle(TCanvas* Target, int WindowOrgX,
+	MESSAGE void __fastcall CMMouseEnter(Winapi::Messages::TMessage &Message);
+	MESSAGE void __fastcall CMMouseLeave(Winapi::Messages::TMessage &Message);
+	BEGIN_MESSAGE_MAP
+		MESSAGE_HANDLER(CM_MOUSEENTER, TMessage, CMMouseEnter)
+		MESSAGE_HANDLER(CM_MOUSELEAVE, TMessage, CMMouseLeave)
+	END_MESSAGE_MAP(TVirtualStringTree)
+		virtual void __fastcall PaintSelectionRectangle(TCanvas* Target, int WindowOrgX,
 		const Types::TRect &SelectionRect, const Types::TRect &TargetRect)
 	{
 		if(GetAsyncKeyState(VK_RBUTTON) < 0) return;

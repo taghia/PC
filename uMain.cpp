@@ -352,11 +352,11 @@ public:
 		return NULL;
 	}
 
-	void setNoActivate(bool value) {
-		for (int ti = 0; ti < count; ti++) {
-			TWindow(items[ti].view->Handle).NoActivate = value;
-		}
-	}
+//	void setNoActivate(bool value) {
+//		for (int ti = 0; ti < count; ti++) {
+//			TWindow(items[ti].view->Handle).NoActivate = value;
+//		}
+//	}
 
 	void updateDrives() {
 		for (int ti = 0; ti < count; ti++) {
@@ -1200,7 +1200,7 @@ void __fastcall TfrmMain::ApplicationEventsActivate(TObject *Sender) {
 
 // ---------------------------------------------------------------------------
 void __fastcall TfrmMain::ApplicationEventsDeactivate(TObject *Sender) {
-	TWindow(Handle).NoActivate = true;
+	//TWindow(Handle).NoActivate = true;
 	// Beep(300, 99);
 	// pageL->setNoActivate(true);
 	// pageR->setNoActivate(true);
@@ -1387,16 +1387,17 @@ void __fastcall TfrmMain::onFocusChanged(TBaseVirtualTree* Sender,
 
 // ---------------------------------------------------------------------------
 void __fastcall TfrmMain::ApplicationEventsMessage(tagMSG &Msg, bool &Handled) {
-	if (Msg.message == WM_LBUTTONUP || Msg.message == WM_NCLBUTTONUP) {
-		POINT point;
-		GetCursorPos(&point);
-		HWND hWnd = WindowFromPoint(point);
-		TWindow forg;
-		forg.CaptureForeground();
-		if(forg.SameProcess(Handle)) return;
-		if (TWindow(hWnd).SameProcess(Handle) && !Application->ModalLevel)
-			SetForegroundWindow(frmMain->Handle);
-	}
+//	if (Msg.message == WM_LBUTTONUP || Msg.message == WM_NCLBUTTONUP)
+//	{
+//		POINT point;
+//		GetCursorPos(&point);
+//		HWND hWnd = WindowFromPoint(point);
+//		TWindow forg;
+//		forg.CaptureForeground();
+//		if(forg.SameProcess(Handle)) return;
+//		if (TWindow(hWnd).SameProcess(Handle) && !Application->ModalLevel)
+//			SetForegroundWindow(frmMain->Handle);
+//	}
 }
 
 // ---------------------------------------------------------------------------

@@ -932,8 +932,13 @@ protected:
 	TStorage *storage;
 
 	DYNAMIC void __fastcall DblClick(void);
-
-	virtual void __fastcall PaintSelectionRectangle(TCanvas* Target, int WindowOrgX,
+	MESSAGE void __fastcall CMMouseEnter(Winapi::Messages::TMessage &Message);
+	MESSAGE void __fastcall CMMouseLeave(Winapi::Messages::TMessage &Message);
+	BEGIN_MESSAGE_MAP
+		MESSAGE_HANDLER(CM_MOUSEENTER, TMessage, CMMouseEnter)
+		MESSAGE_HANDLER(CM_MOUSELEAVE, TMessage, CMMouseLeave)
+	END_MESSAGE_MAP(TVirtualStringTree)
+		virtual void __fastcall PaintSelectionRectangle(TCanvas* Target, int WindowOrgX,
 		const Types::TRect &SelectionRect, const Types::TRect &TargetRect)
 	{
 		if(GetAsyncKeyState(VK_RBUTTON) < 0) return;
@@ -1060,8 +1065,9 @@ protected:
 			Canvas->Font->Style = TFontStyles() << fsBold;
 			Canvas->Font->Quality = TFontQuality::fqClearType;
 			//Canvas->Font->Color = clBlue;
-			//Canvas->Font->Size -= 1;
+			//Canvas->Font->Size -= 0.5;
 		}
+		//Canvas->Font->Quality = TFontQuality::fqClearType;
 		TVirtualStringTree::DoPaintText(Node, Canvas, Column, TextType);
 	}
 

@@ -1650,4 +1650,21 @@ void __fastcall TFileView::onDropAction(TObject *sender)
 	mi->GetParentMenu()->Tag = mi->Tag;
 }
 //---------------------------------------------------------------------------
-
+TWinControl* TFileView::getParentForm()
+{
+	TWinControl *retv = Parent;
+	while(!retv->InheritsFrom(__classid( TForm)))
+		retv = retv->Parent;
+	return retv;
+}
+//---------------------------------------------------------------------------
+void __fastcall TFileView::CMMouseEnter(Winapi::Messages::TMessage &Message)
+{
+	TWindow(getParentForm()->Handle).NoActivate = true;
+}
+//---------------------------------------------------------------------------
+void __fastcall TFileView::CMMouseLeave(Winapi::Messages::TMessage &Message)
+{
+	TWindow(getParentForm()->Handle).NoActivate = false;
+}
+//---------------------------------------------------------------------------

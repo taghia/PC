@@ -932,7 +932,8 @@ protected:
 	TStorage *storage;
 
 	DYNAMIC void __fastcall DblClick(void);
-
+	virtual void __fastcall DoMouseEnter();
+	virtual void __fastcall DoMouseLeave();
 	virtual void __fastcall PaintSelectionRectangle(TCanvas* Target, int WindowOrgX,
 		const Types::TRect &SelectionRect, const Types::TRect &TargetRect)
 	{
@@ -1058,10 +1059,11 @@ protected:
 		if (IsNewObject(obj) && Column == colName)
 		{
 			Canvas->Font->Style = TFontStyles() << fsBold;
-			Canvas->Font->Quality = TFontQuality::fqNonAntialiased;
+			Canvas->Font->Quality = TFontQuality::fqClearType;
 			//Canvas->Font->Color = clBlue;
-			//Canvas->Font->Size -= 1;
+			//Canvas->Font->Size -= 0.5;
 		}
+		//Canvas->Font->Quality = TFontQuality::fqClearType;
 		TVirtualStringTree::DoPaintText(Node, Canvas, Column, TextType);
 	}
 

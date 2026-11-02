@@ -222,13 +222,13 @@
             <DependentOn>winutils.h</DependentOn>
             <BuildOrder>14</BuildOrder>
         </CppCompile>
-        <FormResources Include="uSearch.dfm"/>
-        <FormResources Include="uRun.dfm"/>
         <FormResources Include="uMain.dfm"/>
         <FormResources Include="uRename.dfm"/>
-        <FormResources Include="uUserActions.dfm"/>
-        <FormResources Include="uAddBtn.dfm"/>
         <FormResources Include="uConsole.dfm"/>
+        <FormResources Include="uAddBtn.dfm"/>
+        <FormResources Include="uRun.dfm"/>
+        <FormResources Include="uUserActions.dfm"/>
+        <FormResources Include="uSearch.dfm"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>
