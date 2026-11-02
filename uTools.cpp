@@ -27,13 +27,15 @@ String getDiskQuery()
 		wchar_t drive[] = {getDriveStr(i), ':', 0};
 		int type = GetDriveTypeW(drive);
 		if(type == DRIVE_FIXED || type == DRIVE_REMOVABLE) {
-			query += "[" + String(drive[0]) + " " + formattedSize(DiskFree(drive[0] - 'A' + 1), 10) + "] ";
+			query += "[" + String(drive[0]) + " " +
+				formattedSize(DiskFree(drive[0] - 'A' + 1), 2) + "] ";
 		}
 	}
 	query.SetLength(query.Length() - 1);
 	return query;
 
 }
+
 String formattedSize(long double size, int digits)
 {
 	String unit;
@@ -52,10 +54,7 @@ String formattedSize(long double size, int digits)
 		per = 1024 * 1024 * 1024;
 		unit = "GB";
 	}
-
-	size = size / per;
-	size = (__int64)(size * digits);
-	size = size / digits;
-	return (String)(double)size + " " + unit;
+	double factor = pow(10, digits);
+	return (String)(double)(int(size / per  * factor + 0.5) / factor) + " " + unit;
 }
 #pragma package(smart_init)

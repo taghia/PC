@@ -265,8 +265,10 @@ public:
 		return cFileName[0] == '.' && cFileName[1] == '.';
 	}
 
-	__int64 GetSize() {
-		return nFileSizeLow + (nFileSizeHigh << 16);
+	__int64 GetSize()
+	{
+		return (static_cast<__int64>(nFileSizeHigh) << 32) |
+			   static_cast<unsigned long>(nFileSizeLow);
 	}
 
 	bool isHidden() {
@@ -297,32 +299,7 @@ public:
 		return str;
 	}
 
-	String GetFormattedSize() {
-		int digits = 2;
-		String unit;
-		unit = "B";
-		long per = 1;
-		long double size = Size;
-		if (size > 1024 && size < 1024 * 1024) {
-			unit = "KB";
-			per = 1024;
-		}
-
-		if (size >= 1024 * 1024 && size < 1024 * 1024 * 1024) {
-			per = 1024 * 1024;
-			unit = "MB";
-		}
-		if (size >= 1024 * 1024 * 1024) {
-			per = 1024 * 1024 * 1024;
-			unit = "GB";
-		}
-
-		size = (__int64)(size * digits);
-		size = size / per;
-		size = size / digits;
-
-		return (String)(double)RoundTo(size, -digits) + " " + unit;
-	}
+	String GetFormattedSize();
 
 	String GetExt() {
 		return ExtractFileExt(FileName).LowerCase();

@@ -49,7 +49,8 @@ TStorageItems THdStorage::getItems(text path, DWORD attributes)
 			item.attributes = data.dwFileAttributes;
 			item.creationTime = data.ftCreationTime;
 			item.modifyTime = data.ftLastWriteTime;
-			item.size = (data.nFileSizeHigh << 16) + data.nFileSizeLow;
+			item.size = (static_cast<__int64>(data.nFileSizeHigh) << 32) |
+				static_cast<DWORD>(data.nFileSizeLow);
 		}
 	}
 	while(result);

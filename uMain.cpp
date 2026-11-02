@@ -952,38 +952,10 @@ TpcPage *activePage() {
 TUserAction* Get(int i) {
 	return((TUserAction*)specFolders->actionList->Actions[i]);
 }
-
 // ---------------------------------------------------------------------------
 __fastcall TfrmMain::TfrmMain(TComponent* Owner) : TForm(Owner)
 {
 	Wow64DisableWow64FsRedirection(NULL);
-
-//	TStringList *items = new TStringList;
-//	items->Add("AB");
-//	items->Add("\"");
-//	items->Add(" ");
-//	array arr;
-//	arr << "AB" << "\"" << " ";
-//	text str = arr.getDelimitedText(' ');
-//	items->Delimiter = ' ';
-//	if(str == items->DelimitedText)
-//		ShowMessage(items->DelimitedText);
-
-
-//	TStringList *s = new TStringList;
-//    s->Add("A'B");
-//    s->Add("B\"X");
-//    s->Text;
-//    ShowMessage(s->DelimitedText);
-//    exit(0);
-//	TStorage* storage = createStorageFromPath("C:\\");
-//	TStorageItems items = storage->getItems("C:\\", faAnyFile);
-//	items.count();
-//	array arr;
-//	arr << "D:\\!Mht\\Temp\\cloud\\StorageDemo\\CloudStorageDemo.dproj.local";
-	//storage->deleteItems(arr);
-	//storage->copy(arr, "");
-
 	SetErrorMode(SEM_FAILCRITICALERRORS);
 	pageL = new ::TpcPage(pcL);
 	pageR = new ::TpcPage(pcR);

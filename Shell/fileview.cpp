@@ -258,8 +258,8 @@ DWORD TFileView::EnumFiles()
 		fobj->dwFileAttributes = storageItem.attributes;
 		fobj->ftCreationTime = storageItem.creationTime;
 		fobj->ftLastWriteTime = storageItem.modifyTime;
-		fobj->nFileSizeHigh = (storageItem.size & 0xFFFFFFFF00000000LL) >> 16;
-		fobj->nFileSizeLow = (storageItem.size & 0xFFFFFFFF);
+		fobj->nFileSizeHigh = static_cast<DWORD>(storageItem.size >> 32);
+		fobj->nFileSizeLow = static_cast<DWORD>(storageItem.size);
 	}
 //	HANDLE hfind = 0;
 //	bool result;
@@ -1656,6 +1656,12 @@ TWinControl* TFileView::getParentForm()
 	while(!retv->InheritsFrom(__classid( TForm)))
 		retv = retv->Parent;
 	return retv;
+}
+//---------------------------------------------------------------------------
+#include "utools.h"
+String TFileObject::GetFormattedSize()
+{
+	return formattedSize(Size, 2);
 }
 //---------------------------------------------------------------------------
 void __fastcall TFileView::CMMouseEnter(Winapi::Messages::TMessage &Message)

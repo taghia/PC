@@ -20,6 +20,7 @@
 *.ild
 *.ilf
 *.ils
+*.~*
 
 # RAD Studio user-specific files
 *.dsk
