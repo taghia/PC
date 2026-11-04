@@ -91,6 +91,7 @@ __published:	// IDE-managed Components
 	TAction *actConsole;
 	TAction *actGroupRename;
 	TAction *actInternalDelete;
+	TTimer *TimerTest;
 	void __fastcall FormResize(TObject *Sender);
 	void __fastcall driveRContextPopup(TObject *Sender, TPoint &MousePos, bool &Handled);
 	void __fastcall miCopyPathClick(TObject *Sender);
@@ -137,6 +138,7 @@ __published:	// IDE-managed Components
 	void __fastcall actConsoleExecute(TObject *Sender);
 	void __fastcall actGroupRenameExecute(TObject *Sender);
 	void __fastcall actInternalDeleteExecute(TObject *Sender);
+	void __fastcall TimerTestTimer(TObject *Sender);
 
 private:	// User declarations
 	MESSAGE void __fastcall WMDeviceChange(TMessage &msg);
@@ -146,6 +148,8 @@ private:	// User declarations
 		VCL_MESSAGE_HANDLER(WM_HOTKEY, TMessage, WMHotKey);
 	END_MESSAGE_MAP(TForm);
 	TFileView *vActive, *vInactive;
+	void __fastcall WndProc(TMessage &Message);
+
 public:		// User declarations
 	__fastcall TfrmMain(TComponent* Owner);
 	TFileView* createFileView(TPageControl *parent);

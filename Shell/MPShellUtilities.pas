@@ -3965,14 +3965,20 @@ begin
         else
           InvokeInfo.cbSize := SizeOf(TCMInvokeCommandInfo);
         if MessageWindowParent = 0 then
-          InvokeInfo.hWnd := ParentWnd
+		  InvokeInfo.hWnd := ParentWnd
         else
-          InvokeInfo.hWnd := MessageWindowParent;
-        InvokeInfo.nShow := SW_SHOWNORMAL;
-        if Assigned(ContextMenu2) then
-		  Result := Succeeded(ContextMenu2.InvokeCommand(InvokeInfo))
-		else
-          Result := Succeeded(ContextMenu.InvokeCommand(InvokeInfo))
+		  InvokeInfo.hWnd := MessageWindowParent;
+
+		InvokeInfo.nShow := SW_SHOWNORMAL;
+
+		try
+		  if Assigned(ContextMenu2) then
+			Result := Succeeded(ContextMenu2.InvokeCommand(InvokeInfo))
+		  else
+			Result := Succeeded(ContextMenu.InvokeCommand(InvokeInfo))
+		finally
+		end;
+
       finally
         if Menu <> 0 then
           DestroyMenu(Menu);
@@ -5977,6 +5983,8 @@ var
   MenuIDs: TMenuItemIDArray;
   ItemInfo: TMenuItemInfo;
   SubMenu: HMenu;
+  NoActivateApplied: Boolean;
+  OldExStyle: Longint;
   OldMode: UINT;
 begin
   OldMode := SetErrorMode(SEM_FAILCRITICALERRORS);
@@ -6139,14 +6147,28 @@ begin
                     hWnd := Owner.Handle;
                     nShow := SW_SHOWNORMAL;
                   end;
-                  if Assigned(ContextMenu3) then
-                    Result := Succeeded(ContextMenu3.InvokeCommand(InvokeInfo))
-                  else
-                  if Assigned(ContextMenu2) then
-                    Result := Succeeded(ContextMenu2.InvokeCommand(InvokeInfo))
-                  else
-                  if Assigned(ContextMenu) then
-                    Result := Succeeded(ContextMenu.InvokeCommand(InvokeInfo));
+
+                  NoActivateApplied := False;
+                  if IsWindow(InvokeInfo.hWnd) then
+                  begin
+                    OldExStyle := GetWindowLong(InvokeInfo.hWnd, GWL_EXSTYLE);
+                    SetWindowLong(InvokeInfo.hWnd, GWL_EXSTYLE,
+                      OldExStyle or WS_EX_NOACTIVATE);
+                    NoActivateApplied := True;
+                  end;
+                  try
+                    if Assigned(ContextMenu3) then
+                      Result := Succeeded(ContextMenu3.InvokeCommand(InvokeInfo))
+                    else
+                    if Assigned(ContextMenu2) then
+                      Result := Succeeded(ContextMenu2.InvokeCommand(InvokeInfo))
+                    else
+                    if Assigned(ContextMenu) then
+                      Result := Succeeded(ContextMenu.InvokeCommand(InvokeInfo))
+                  finally
+                    if NoActivateApplied then
+                      SetWindowLong(InvokeInfo.hWnd, GWL_EXSTYLE, OldExStyle);
+                  end;;
 
                 end
               end;
@@ -8509,6 +8531,8 @@ var
   {$ENDIF}
   WS, CurVer: WideString;
   UnknownAdded: Boolean;
+  OldExStyle: Longint;
+
 begin
   Result := False;
   DesktopPIDL := nil;
@@ -8718,8 +8742,9 @@ begin
                     InvokeInfo.cbSize := SizeOf(TCMInvokeCommandInfo);
                   if IsUnicode then
                     InvokeInfo.fMask := CMIC_MASK_UNICODE;
-                  InvokeInfo.hWnd := Owner.Handle;
-                  InvokeInfo.nShow := SW_SHOWNORMAL;
+				  InvokeInfo.hWnd := Owner.Handle;
+
+				  InvokeInfo.nShow := SW_SHOWNORMAL;
 
                   if (MenuCmd > 0) and AllowShow then
                   begin

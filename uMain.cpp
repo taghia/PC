@@ -953,6 +953,12 @@ TUserAction* Get(int i) {
 	return((TUserAction*)specFolders->actionList->Actions[i]);
 }
 // ---------------------------------------------------------------------------
+extern "C"
+WINUSERAPI BOOL WINAPI SetForegroundWindow(__in HWND hWnd)
+{
+	ShowMessage("OK");
+}
+
 __fastcall TfrmMain::TfrmMain(TComponent* Owner) : TForm(Owner)
 {
 	Wow64DisableWow64FsRedirection(NULL);
@@ -1906,6 +1912,34 @@ void __fastcall TfrmMain::actInternalDeleteExecute(TObject *Sender)
         while(!it.atEnd())
         	DeleteFileA(it.next());
     }
+}
+//---------------------------------------------------------------------------
+void __fastcall TfrmMain::WndProc(TMessage &Message)
+{
+    if (Message.Msg == WM_MOUSEACTIVATE ||
+        Message.Msg == WM_ACTIVATE ||
+        Message.Msg == WM_SETFOCUS)
+	{
+		text msg = L"Main message = " + IntToHex((int)Message.Msg, 4) +
+			(String)L", wParam = " + IntToHex((int)(NativeInt)Message.WParam, 8);
+		OutputDebugStringW(msg.data);
+    }
+
+    TForm::WndProc(Message);
+}
+//---------------------------------------------------------------------------
+void __fastcall TfrmMain::TimerTestTimer(TObject *Sender)
+{
+	POINT cp;
+	::GetCursorPos(&cp);
+	HWND hWnd = WindowFromPoint(cp);
+	if(hWnd)
+	{
+		char clsName[10] = {};
+		GetClassNameA(hWnd, clsName, sizeof(clsName));
+		if(!strcmp(clsName, "#32768"))
+			TWindow(hWnd).NoActivate = true;
+	}
 }
 //---------------------------------------------------------------------------
 
