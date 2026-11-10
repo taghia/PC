@@ -1928,17 +1928,16 @@ void __fastcall TfrmMain::WndProc(TMessage &Message)
     TForm::WndProc(Message);
 }
 //---------------------------------------------------------------------------
-void __fastcall TfrmMain::TimerTestTimer(TObject *Sender)
+void __fastcall TfrmMain::MakeContextMenuNoActivateTimer(TObject *Sender)
 {
 	POINT cp;
 	::GetCursorPos(&cp);
 	HWND hWnd = WindowFromPoint(cp);
 	if(hWnd)
 	{
-		char clsName[10] = {};
-		GetClassNameA(hWnd, clsName, sizeof(clsName));
-		if(!strcmp(clsName, "#32768"))
-			TWindow(hWnd).NoActivate = true;
+		TWindow wndContextMenu(hWnd);
+		if(!CompareText(wndContextMenu.ClassName, "#32768") && wndContextMenu.SameProcess(Handle))
+			wndContextMenu.NoActivate = true;
 	}
 }
 //---------------------------------------------------------------------------

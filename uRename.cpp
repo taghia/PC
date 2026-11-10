@@ -14,30 +14,26 @@ __fastcall TfrmRename::TfrmRename(TComponent* Owner)
 {
 }
 //---------------------------------------------------------------------------
+#include <JavaScriptEvaluator.h>
+//---------------------------------------------------------------------------
 void TfrmRename::applyPattern()
 {
+	JavaScriptEvaluator js;
+	if(!js.init())
+	{
+		ShowMessage("Could not init javascript");
+		return;
+	}
 	lbPreview->Clear();
 	for (int i = 0; i < items.count(); i++) {
 		text item, pat;
-		pat = edtPat->Text;
-		if(pat.wcCompare("*[*,*]*"))
+		text script = String(L"var file='") + items[i] + "'";
+		if(!js.define(script) || !js.eval(edtPat->Text.c_str()))
 		{
-			text start = pat.subfind("[", ",").trim();
-			text end = pat.subfind(",", "]").trim();
-
-			if(start[0] == '\'' && end[0] != '\'')
-				pat = pat.replace("[", "]", items[i].subfind(start.unQuoted('\''), end.intValue()));
-			else if(start[0] != '\'' && end[0] == '\'')
-				pat = pat.replace("[", "]", items[i].subfind(start.intValue(), end.unQuoted('\'')));
-			else if(start[0] == '\'' && end[0] == '\'')
-				pat = pat.replace("[", "]", items[i].subfind(start.unQuoted('\''), end.unQuoted('\'')));
-			else if(start[0] != '\'' && end[0] != '\'')
-				pat = pat.replace("[", "]", items[i].substr(start.intValue(), end.intValue()));
-
-
+			ShowMessage("JavaScript error");
+			return;
 		}
-		item.print(pat, i);
-		lbPreview->Items->Add(item);
+		lbPreview->Items->Add(js.getResult());
 	}
 }
 //---------------------------------------------------------------------------

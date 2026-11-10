@@ -73,7 +73,7 @@ object frmRename: TfrmRename
     Hint = 'Example: [1,] ; [3, '#39'.'#39'].bmp ; ['#39'm'#39', '#39'x'#39'].ps ; image %i.jpg'
     Align = alTop
     TabOrder = 3
-    Text = 'file %i'
+    Text = 'file'
     OnKeyPress = edtPatKeyPress
   end
 end

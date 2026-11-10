@@ -4,13 +4,13 @@
 #pragma hdrstop
 #include <tchar.h>
 //---------------------------------------------------------------------------
-USEFORM("uRun.cpp", frmRun);
-USEFORM("uAddBtn.cpp", frmAddBtn);
 USEFORM("uMain.cpp", frmMain);
+USEFORM("uRename.cpp", frmRename);
+USEFORM("uConsole.cpp", frmConsole);
+USEFORM("uAddBtn.cpp", frmAddBtn);
+USEFORM("uRun.cpp", frmRun);
 USEFORM("uUserActions.cpp", frmUserActions);
 USEFORM("uSearch.cpp", frmSearch);
-USEFORM("uConsole.cpp", frmConsole);
-USEFORM("uRename.cpp", frmRename);
 //---------------------------------------------------------------------------
 WINAPI _tWinMain(HINSTANCE, HINSTANCE, LPTSTR, int)
 {

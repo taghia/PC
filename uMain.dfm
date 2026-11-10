@@ -1109,8 +1109,8 @@ object frmMain: TfrmMain
       OnClick = miUseShamsiDateClick
     end
   end
-  object TimerTest: TTimer
-    OnTimer = TimerTestTimer
+  object MakeContextMenuNoActivate: TTimer
+    OnTimer = MakeContextMenuNoActivateTimer
     Left = 400
     Top = 167
   end

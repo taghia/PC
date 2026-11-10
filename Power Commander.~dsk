@@ -15,22 +15,12 @@ File_12=TSourceModule,'D:\!Mht\Projects\QB4\Typography\Export.cpp',0,1,1,70,17,0
 File_13=TSourceModule,'D:\!Mht\Projects\QB4\Typography\ComObjectManager.cpp',0,1,116,1,123,0,0,,
 
 [Modules]
-Module0=C:\Projects\PC5\uMain.cpp
-Module1=c:\program files (x86)\embarcadero\rad studio\11.0\include\windows\rtl\System.SysUtils.hpp
-Module2=C:\Projects\PC5\uTools.cpp
-Module3=C:\Projects\PC5\Shell\fileview.cpp
+Module0=C:\Projects\PC5\uTools.cpp
+Module1=C:\Projects\PC5\Shell\fileview.cpp
+Module2=C:\Projects\PC5\uMain.cpp
+Module3=c:\program files (x86)\embarcadero\rad studio\11.0\include\windows\rtl\System.SysUtils.hpp
 Count=4
 EditWindowCount=1
-
-[C:\Projects\PC5\uMain.cpp]
-ModuleType=TSourceModule
-FormState=1
-FormOnTop=0
-
-[c:\program files (x86)\embarcadero\rad studio\11.0\include\windows\rtl\System.SysUtils.hpp]
-ModuleType=TSourceModule
-FormState=0
-FormOnTop=0
 
 [C:\Projects\PC5\uTools.cpp]
 ModuleType=TSourceModule
@@ -42,9 +32,19 @@ ModuleType=TSourceModule
 FormState=0
 FormOnTop=0
 
+[C:\Projects\PC5\uMain.cpp]
+ModuleType=TSourceModule
+FormState=1
+FormOnTop=0
+
+[c:\program files (x86)\embarcadero\rad studio\11.0\include\windows\rtl\System.SysUtils.hpp]
+ModuleType=TSourceModule
+FormState=0
+FormOnTop=0
+
 [EditWindow0]
 ViewCount=4
-CurrentEditView=C:\Projects\PC5\uMain.cpp
+CurrentEditView=C:\Projects\PC5\uTools.cpp
 View0=0
 View1=1
 View2=2
@@ -79,7 +79,7 @@ BottomMiddelPanelData=0000080001000100000009000000446F636B5369746530990800000000
 [View0]
 CustomEditViewType=TEditView
 Module=C:\Projects\PC5\uMain.cpp
-CursorX=3
+CursorX=32
 CursorY=959
 TopLine=952
 LeftCol=1
@@ -101,8 +101,8 @@ EditViewName=c:\program files (x86)\embarcadero\rad studio\11.0\include\windows\
 [View2]
 CustomEditViewType=TEditView
 Module=C:\Projects\PC5\Shell\fileview.cpp
-CursorX=20
-CursorY=1661
+CursorX=47
+CursorY=1664
 TopLine=1653
 LeftCol=1
 Elisions=
@@ -112,13 +112,13 @@ EditViewName=C:\Projects\PC5\Shell\fileview.cpp
 [View3]
 CustomEditViewType=TEditView
 Module=C:\Projects\PC5\uTools.cpp
-CursorX=33
-CursorY=38
-TopLine=35
+CursorX=1
+CursorY=37
+TopLine=18
 LeftCol=1
 Elisions=
 Bookmarks=
-EditViewName=C:\Projects\PC5\uTools.h
+EditViewName=C:\Projects\PC5\uTools.cpp
 
 [Watches]
 Count=0
