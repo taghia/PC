@@ -3,8 +3,8 @@ object frmRename: TfrmRename
   Top = 0
   BorderStyle = bsDialog
   Caption = 'Group Rename'
-  ClientHeight = 239
-  ClientWidth = 401
+  ClientHeight = 236
+  ClientWidth = 268
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -15,15 +15,15 @@ object frmRename: TfrmRename
   Position = poMainFormCenter
   ShowHint = True
   DesignSize = (
-    401
-    239)
+    268
+    236)
   PixelsPerInch = 96
   TextHeight = 13
   object Label1: TLabel
     AlignWithMargins = True
     Left = 5
     Top = 3
-    Width = 393
+    Width = 260
     Height = 13
     Margins.Left = 5
     Margins.Bottom = 0
@@ -35,16 +35,17 @@ object frmRename: TfrmRename
     AlignWithMargins = True
     Left = 3
     Top = 19
-    Width = 395
+    Width = 262
     Height = 154
     Margins.Bottom = 0
     Align = alTop
     ItemHeight = 13
     TabOrder = 0
+    ExplicitWidth = 395
   end
   object btnRename: TButton
-    Left = 119
-    Top = 206
+    Left = 97
+    Top = 203
     Width = 75
     Height = 25
     Anchors = [akTop]
@@ -54,8 +55,8 @@ object frmRename: TfrmRename
     OnClick = btnRenameClick
   end
   object btnCancel: TButton
-    Left = 206
-    Top = 206
+    Left = 178
+    Top = 203
     Width = 75
     Height = 25
     Anchors = [akTop]
@@ -64,16 +65,31 @@ object frmRename: TfrmRename
     ModalResult = 2
     TabOrder = 2
   end
-  object edtPat: TEdit
-    AlignWithMargins = True
+  object edtPat: TComboBox
     Left = 3
     Top = 176
-    Width = 395
+    Width = 262
     Height = 21
-    Hint = 'Example: [1,] ; [3, '#39'.'#39'].bmp ; ['#39'm'#39', '#39'x'#39'].ps ; image %i.jpg'
-    Align = alTop
+    Anchors = [akLeft, akTop, akRight]
     TabOrder = 3
     Text = 'file'
+    TextHint = 'enter javascript'
     OnKeyPress = edtPatKeyPress
+    Items.Strings = (
+      '-> fil'
+      '-> file'
+      '-> "image " + pad(i+1, 3)+ ext'
+      '-> file.toLowerCase()')
+    ExplicitWidth = 395
+  end
+  object btnPreview: TButton
+    Left = 16
+    Top = 203
+    Width = 75
+    Height = 25
+    Anchors = [akTop]
+    Caption = 'Preview'
+    TabOrder = 4
+    OnClick = btnPreviewClick
   end
 end

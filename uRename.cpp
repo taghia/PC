@@ -18,6 +18,7 @@ __fastcall TfrmRename::TfrmRename(TComponent* Owner)
 //---------------------------------------------------------------------------
 void TfrmRename::applyPattern()
 {
+	text item, pat, fil;
 	JavaScriptEvaluator js;
 	if(!js.init())
 	{
@@ -25,9 +26,15 @@ void TfrmRename::applyPattern()
 		return;
 	}
 	lbPreview->Clear();
+	js.define(L"function pad(n, len) {var s = String(n);while (s.length < len)s = '0' + s;return s;}");
 	for (int i = 0; i < items.count(); i++) {
-		text item, pat;
-		text script = String(L"var file='") + items[i] + "'";
+		text script = "var i=[]; var file='[]'; ext='[]'; fil='[]'";
+		item = items[i];
+		if(item.contains("."))
+			fil = item.substr(0, item.rfind("."));
+		else
+			fil = item;
+		script = script << i << item << ExtractFileExt(item) << fil;
 		if(!js.define(script) || !js.eval(edtPat->Text.c_str()))
 		{
 			ShowMessage("JavaScript error");
@@ -46,13 +53,17 @@ void __fastcall TfrmRename::edtPatKeyPress(TObject *Sender, wchar_t &Key)
 	}
 }
 //---------------------------------------------------------------------------
-
 void __fastcall TfrmRename::btnRenameClick(TObject *Sender)
 {
 	applyPattern();
 	for (int i = 0; i < items.count(); i++) {
 		RenameFile(dir + items[i], dir + lbPreview->Items->Strings[i]);
 	}
+}
+//---------------------------------------------------------------------------
+void __fastcall TfrmRename::btnPreviewClick(TObject *Sender)
+{
+	applyPattern();
 }
 //---------------------------------------------------------------------------
 

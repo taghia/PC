@@ -1893,8 +1893,8 @@ void __fastcall TfrmMain::actGroupRenameExecute(TObject *Sender)
 	{
 		frmRename->items = items;
 		frmRename->dir = activeView()->Directory;
-		if(frmRename->edtPat->Text.IsEmpty())
-			frmRename->edtPat->Text = extractFace(items[0]) + " %i" + activeView()->FileObject->Ext;
+//		if(frmRename->edtPat->Text.IsEmpty())
+//			frmRename->edtPat->Text = extractFace(items[0]) + " %i" + activeView()->FileObject->Ext;
 		frmRename->applyPattern();
 		frmRename->ShowModal();
 	}

@@ -16,9 +16,11 @@ __published:	// IDE-managed Components
 	TButton *btnRename;
 	TButton *btnCancel;
 	TLabel *Label1;
-	TEdit *edtPat;
+	TComboBox *edtPat;
+	TButton *btnPreview;
 	void __fastcall edtPatKeyPress(TObject *Sender, wchar_t &Key);
 	void __fastcall btnRenameClick(TObject *Sender);
+	void __fastcall btnPreviewClick(TObject *Sender);
 private:	// User declarations
 public:		// User declarations
 	__fastcall TfrmRename(TComponent* Owner);
