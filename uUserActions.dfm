@@ -49,9 +49,9 @@ object frmUserActions: TfrmUserActions
   end
   object lbActions: TListBox
     Left = 8
-    Top = 8
+    Top = 35
     Width = 172
-    Height = 283
+    Height = 256
     ItemHeight = 13
     TabOrder = 0
     OnDblClick = lbActionsDblClick
@@ -90,5 +90,18 @@ object frmUserActions: TfrmUserActions
     Caption = 'Run'
     Default = True
     TabOrder = 1
+  end
+  object edtFind: TButtonedEdit
+    Left = 8
+    Top = 8
+    Width = 172
+    Height = 21
+    Images = frmMain.ImageList
+    RightButton.ImageIndex = 3
+    RightButton.Visible = True
+    TabOrder = 5
+    TextHint = 'Search'
+    OnChange = edtFindChange
+    OnRightButtonClick = edtFindRightButtonClick
   end
 end

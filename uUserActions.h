@@ -8,6 +8,7 @@
 #include <StdCtrls.hpp>
 #include <Forms.hpp>
 #include <Buttons.hpp>
+#include <Vcl.ExtCtrls.hpp>
 //---------------------------------------------------------------------------
 class TfrmUserActions : public TForm
 {
@@ -19,8 +20,11 @@ __published:	// IDE-managed Components
 	TButton *btnRun;
 	TSpeedButton *btnUp;
 	TSpeedButton *btnDown;
+	TButtonedEdit *edtFind;
 	void __fastcall btnCloseClick(TObject *Sender);
 	void __fastcall lbActionsDblClick(TObject *Sender);
+	void __fastcall edtFindChange(TObject *Sender);
+	void __fastcall edtFindRightButtonClick(TObject *Sender);
 private:	// User declarations
 public:		// User declarations
 	__fastcall TfrmUserActions(TComponent* Owner);

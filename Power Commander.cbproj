@@ -73,7 +73,7 @@
         <ProjectType>CppVCLApplication</ProjectType>
         <PackageImports>vcl.bpi;rtl.bpi;bcbie.bpi;vclx.bpi;vclactnband.bpi;xmlrtl.bpi;bcbsmp.bpi;vclimg.bpi;dbrtl.bpi;vcldb.bpi;vcldbx.bpi;bdertl.bpi;vcltouch.bpi;dsnap.bpi;dsnapcon.bpi;TeeUI.bpi;TeeDB.bpi;Tee.bpi;adortl.bpi;IndyCore.bpi;IndySystem.bpi;IndyProtocols.bpi;inet.bpi;intrawebdb_100_140.bpi;Intraweb_100_140.bpi;VclSmp.bpi;vclie.bpi;websnap.bpi;webdsnap.bpi;inetdb.bpi;inetdbbde.bpi;inetdbxpress.bpi;soaprtl.bpi;vclribbon.bpi;dbexpress.bpi;DbxCommonDriver.bpi;DataSnapIndy10ServerTransport.bpi;DataSnapProviderClient.bpi;DbxClientDriver.bpi;DataSnapServer.bpi;DBXInterBaseDriver.bpi;DBXMySQLDriver.bpi;dbxcds.bpi;DBXFirebirdDriver.bpi;DBXSybaseASEDriver.bpi;DBXSybaseASADriver.bpi;DBXOracleDriver.bpi;DBXMSSQLDriver.bpi;DBXInformixDriver.bpi;DBXDb2Driver.bpi;xpress.bpi;IraneMaVR.bpi;$(PackageImports)</PackageImports>
         <OutputExt>exe</OutputExt>
-        <AllPackageLibs>rtl.lib;vcl.lib;soaprtl.lib;xmlrtl.lib;inet.lib;dbrtl.lib;dsnap.lib;vcldb.lib</AllPackageLibs>
+        <AllPackageLibs>rtl.lib;vcl.lib;soaprtl.lib;xmlrtl.lib;inet.lib;dbrtl.lib;dsnap.lib;vcldb.lib;fmx.lib</AllPackageLibs>
         <DCC_CBuilderOutput>JPHNE</DCC_CBuilderOutput>
         <DCC_UnitSearchPath>$(MSBuildProjectDirectory)\Shell;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
         <IncludePath>.;Shell\;$(BDS)\include;$(IncludePath)</IncludePath>
@@ -131,6 +131,7 @@
         <ILINK_TranslatedLibraryPath>$(BDS)\lib\$(LANGDIR)\release;$(ILINK_TranslatedLibraryPath)</ILINK_TranslatedLibraryPath>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2_Win32)'!=''">
+        <LinkPackageStatics>rtl.lib;vcl.lib;soaprtl.lib;xmlrtl.lib;inet.lib;dbrtl.lib;dsnap.lib;vcldb.lib;fmx.lib</LinkPackageStatics>
         <Defines>NDEBUG;$(Defines)</Defines>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2_Win64)'!=''">
@@ -143,6 +144,9 @@
         <CppCompile Include="JavaScriptEvaluator.cpp">
             <DependentOn>JavaScriptEvaluator.h</DependentOn>
             <BuildOrder>22</BuildOrder>
+        </CppCompile>
+        <CppCompile Include="LogTools.cpp">
+            <BuildOrder>23</BuildOrder>
         </CppCompile>
         <CppCompile Include="Power Commander.cpp">
             <BuildOrder>0</BuildOrder>
