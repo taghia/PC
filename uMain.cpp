@@ -59,6 +59,13 @@ class TTab : public TTabSheet {
 	void __fastcall onMouseUp(TObject *Sender, TMouseButton Button,
 		TShiftState Shift, int X, int Y)
 	{
+		// bug fix
+		TPoint mouse_pos = TMouse().CursorPos;
+		mouse_pos = ScreenToClient(mouse_pos);
+		if(X != mouse_pos.X || Y != mouse_pos.Y)
+			return;
+		//
+
 		int index = drive->IndexOfButtonAt(X, Y);
 		if(index != -1)
 		{
