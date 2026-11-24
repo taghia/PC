@@ -51,9 +51,21 @@ class TTab : public TTabSheet {
 	}
 
 	void __fastcall onDriveClick(TObject* Sender, int index) {
-		TGrpButtonItem *button = drive->Items->Items[index];
-		view->Directory = button->Caption + ":\\";
-		view->SetFocus();
+//		TGrpButtonItem *button = drive->Items->Items[index];
+//		view->Directory = button->Caption + ":\\";
+//		view->SetFocus();
+	}
+
+	void __fastcall onMouseUp(TObject *Sender, TMouseButton Button,
+		TShiftState Shift, int X, int Y)
+	{
+		int index = drive->IndexOfButtonAt(X, Y);
+		if(index != -1)
+		{
+			TGrpButtonItem *button = drive->Items->Items[index];
+			view->Directory = button->Caption + ":\\";
+			view->SetFocus();
+		}
 	}
 
 	void setActiveDrive() {
@@ -158,6 +170,7 @@ public:
 		drive->ButtonHeight = 18;
 		drive->ButtonWidth = 40;
 		drive->OnButtonClicked = onDriveClick;
+		drive->OnMouseUp = onMouseUp;
 		drive->ButtonOptions << gboGroupStyle;
 		drive->OnContextPopup = onContextPopup;
 		if (!drive->Images) {
@@ -186,10 +199,6 @@ public:
 	void __fastcall onChange(TBaseVirtualTree* Sender, PVirtualNode Node)
 	{
 		frmMain->updateStatusBar();
-	}
-
-	void __fastcall onMouseUp(TObject *Sender, TMouseButton Button,
-		TShiftState Shift, int X, int Y) {
 	}
 
 	void create(String dir) {
@@ -1944,4 +1953,5 @@ void __fastcall TfrmMain::MakeContextMenuNoActivateTimer(TObject *Sender)
 	}
 }
 //---------------------------------------------------------------------------
+
 
