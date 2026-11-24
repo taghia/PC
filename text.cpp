@@ -3643,6 +3643,7 @@ text array::getDelimitedText(wchar_t delimiter)
 		if(i < count - 1)
 		{
 			retv[pos ++] = delimiter;
+			retv[pos] = 0;
 		}
 	}
 	retv[pos ++] = 0;

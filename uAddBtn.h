@@ -9,6 +9,7 @@
 #include <Forms.hpp>
 #include <ExtCtrls.hpp>
 #include <ComCtrls.hpp>
+#include <Vcl.Menus.hpp>
 //---------------------------------------------------------------------------
 class TfrmAddBtn : public TForm
 {
@@ -32,10 +33,13 @@ __published:	// IDE-managed Components
 	TLabel *Label4;
 	TLabel *labPreview;
 	TLabel *Label5;
+	TPopupMenu *popCmd;
+	TMenuItem *miCopy;
 	void __fastcall Button2Click(TObject *Sender);
 	void __fastcall edtCmdLineChange(TObject *Sender);
 	void __fastcall chSeparatorClick(TObject *Sender);
 	void __fastcall FormShow(TObject *Sender);
+	void __fastcall miCopyClick(TObject *Sender);
 private:	// User declarations
 public:		// User declarations
 	__fastcall TfrmAddBtn(TComponent* Owner);

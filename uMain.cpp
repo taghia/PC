@@ -684,12 +684,13 @@ public:
 	}
 
 	void __fastcall onExecute(TObject *Sender) {
-		SetCurrentDir(ExtractFilePath(Application->ExeName));
 		TUserAction *action = (TUserAction*)Sender;
+		text tool = ExtractFilePath(Application->ExeName) + action->path;
+		text workingDir = ExtractFilePath(tool);
 		String params = renderParam(action->cmdLine);
 		if (FileExists(action->path))
-			ShellExecuteW(frmMain->Handle, L"open", action->path,
-				params.c_str(), L"", SW_NORMAL);
+			ShellExecuteW(frmMain->Handle, L"open", tool,
+				params.c_str(), workingDir, SW_NORMAL);
 		else
 			frmMain->activeView()->Directory = action->path;
 	}
@@ -961,7 +962,9 @@ WINUSERAPI BOOL WINAPI SetForegroundWindow(__in HWND hWnd)
 
 __fastcall TfrmMain::TfrmMain(TComponent* Owner) : TForm(Owner)
 {
+#ifndef _DEBUG
 	Wow64DisableWow64FsRedirection(NULL);
+#endif
 	SetErrorMode(SEM_FAILCRITICALERRORS);
 	pageL = new ::TpcPage(pcL);
 	pageR = new ::TpcPage(pcR);

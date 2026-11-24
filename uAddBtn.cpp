@@ -41,7 +41,15 @@ void __fastcall TfrmAddBtn::chSeparatorClick(TObject *Sender)
 void __fastcall TfrmAddBtn::FormShow(TObject *Sender)
 {
 	//edtCmdLine->Hint = renderParam(edtCmdLine->Text, false);
-    labPreview->Caption = renderParam(edtCmdLine->Text, false);
+	labPreview->Caption = renderParam(edtCmdLine->Text, false);
+}
+//---------------------------------------------------------------------------
+#include "clipbrd.hpp"
+void __fastcall TfrmAddBtn::miCopyClick(TObject *Sender)
+{
+	TClipboard *clip = new TClipboard;
+	clip->AsText = labPreview->Caption;
+	delete clip;
 }
 //---------------------------------------------------------------------------
 

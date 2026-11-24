@@ -56,6 +56,7 @@ object frmAddBtn: TfrmAddBtn
     Font.Name = 'Tahoma'
     Font.Style = []
     ParentFont = False
+    PopupMenu = popCmd
     WordWrap = True
   end
   object Label5: TLabel
@@ -251,5 +252,13 @@ object frmAddBtn: TfrmAddBtn
     Width = 128
     Height = 21
     TabOrder = 9
+  end
+  object popCmd: TPopupMenu
+    Left = 256
+    Top = 96
+    object miCopy: TMenuItem
+      Caption = 'Copy'
+      OnClick = miCopyClick
+    end
   end
 end
