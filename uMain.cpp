@@ -56,6 +56,18 @@ class TTab : public TTabSheet {
 //		view->SetFocus();
 	}
 
+	void __fastcall onMouseEnter(TObject *Sender)
+	{
+		for(int i = 0; i < drive->Items->Count; i ++)
+		{
+			TGrpButtonItem *button = drive->Items->Items[i];
+			text drive = button->Caption + (text)":";
+			__int64 free = DriveFreeSpace(drive.data);
+			__int64 size = DriveSize(drive.data);
+			button->Hint = formattedSize(free, 2) + " free / " + formattedSize(size, 2);
+		}
+	}
+
 	void __fastcall onMouseUp(TObject *Sender, TMouseButton Button,
 		TShiftState Shift, int X, int Y)
 	{
@@ -178,6 +190,7 @@ public:
 		drive->ButtonWidth = 40;
 		drive->OnButtonClicked = onDriveClick;
 		drive->OnMouseUp = onMouseUp;
+		drive->OnMouseEnter = onMouseEnter;
 		drive->ButtonOptions << gboGroupStyle;
 		drive->OnContextPopup = onContextPopup;
 		if (!drive->Images) {
@@ -186,6 +199,7 @@ public:
 			drive->Images->ColorDepth = cd32Bit;
 		}
 		drive->Images->Clear();
+		drive->ShowHint = true;
 
 		for (int di = 0; di < count; di++) {
 			TGrpButtonItem* item = drive->Items->Add();
