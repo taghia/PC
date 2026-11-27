@@ -904,6 +904,8 @@ private:
 	void __fastcall onDropAction(TObject *sender);
 	TPopupMenu *popDrop;
 	String m_copyDst;
+	bool mShowHiddenFiles;
+
 protected:
 	TStringEditLink *editLink;
 	TStorage *storage;
@@ -1327,7 +1329,7 @@ public:
 		read = m_backIcon, write = SetBackIcon
 	};
 	void showContextMenu(TPoint point = Point(-1, -1));
-
+	void showHiddenFiles(bool value);
 __published:
 };
 bool TFileView::lockUpdate = false;

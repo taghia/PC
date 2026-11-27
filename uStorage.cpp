@@ -28,7 +28,7 @@ THdStorage::~THdStorage()
 	OutputDebugStringA("Sub");
 }
 //---------------------------------------------------------------------------
-TStorageItems THdStorage::getItems(text path, DWORD attributes)
+TStorageItems THdStorage::getItems(text path, bool hidden)
 {
 	TStorageItems retv;
 	HANDLE hfind = 0;
@@ -41,9 +41,17 @@ TStorageItems THdStorage::getItems(text path, DWORD attributes)
 			hfind = FindFirstFileW(path + "*.*", &data);
 		else
 			result = FindNextFileW(hfind, &data);
-		if (result && !(data.cFileName[0] == L'.' && (data.cFileName[1] == 0 || data.cFileName[1] == '.')) &&
-			(data.dwFileAttributes & attributes) && hfind != (void*)-1)
+		if (result)
 		{
+			if(!wcscmp(data.cFileName, L".") || !wcscmp(data.cFileName, L".."))
+				continue;
+			if(!hidden)
+			{
+				if(data.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN)
+					continue;
+				if(data.dwFileAttributes & FILE_ATTRIBUTE_SYSTEM)
+					continue;
+			}
 			TStorageItem &item = retv.add();
 			item.name = data.cFileName;
 			item.attributes = data.dwFileAttributes;

@@ -37,7 +37,7 @@ public:
 	{
 		OutputDebugStringA("Super");
 	}
-	virtual TStorageItems getItems(text path, DWORD attributes) = 0;
+	virtual TStorageItems getItems(text path, bool hidden) = 0;
 	virtual bool deleteItems(array items) = 0;
 	virtual bool renameItem(text oldName, text newName) = 0;
 	virtual data_t download(text itemName) = 0;
@@ -56,7 +56,7 @@ protected:
 public:
 	THdStorage();
 	virtual ~THdStorage();
-	virtual TStorageItems getItems(text path, DWORD attributes);
+	virtual TStorageItems getItems(text path, bool hidden);
 	virtual bool deleteItems(array items);
 	virtual bool renameItem(text oldName, text newName);
 	virtual data_t download(text itemName);

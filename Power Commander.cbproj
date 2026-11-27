@@ -3,7 +3,7 @@
         <ProjectGuid>{C0115006-AE19-4E9B-97AF-2E4B100FD7FE}</ProjectGuid>
         <ProjectVersion>14.6</ProjectVersion>
         <MainSource>Power Commander.cpp</MainSource>
-        <Config Condition="'$(Config)'==''">Debug</Config>
+        <Config Condition="'$(Config)'==''">Release</Config>
         <FrameworkType>VCL</FrameworkType>
         <Base>True</Base>
         <Platform Condition="'$(Platform)'==''">Win32</Platform>

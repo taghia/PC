@@ -1974,5 +1974,11 @@ void __fastcall TfrmMain::MakeContextMenuNoActivateTimer(TObject *Sender)
 	}
 }
 //---------------------------------------------------------------------------
-
+void __fastcall TfrmMain::btnHiddenClick(TObject *Sender)
+{
+	activeView()->showHiddenFiles(btnHidden->Down);
+	inactiveView()->showHiddenFiles(btnHidden->Down);
+	actRefresh->Execute();
+}
+//---------------------------------------------------------------------------
 

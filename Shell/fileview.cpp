@@ -18,6 +18,7 @@ static inline void ValidCtrCheck(TFileView *) {
 
 // ---------------------------------------------------------------------------
 __fastcall TFileView::TFileView(TComponent* Owner) : TVirtualStringTree(Owner) {
+	mShowHiddenFiles = false;
 	storage = NULL;
 	popDrop = NULL;
 	rightDrag = false;
@@ -33,7 +34,7 @@ __fastcall TFileView::TFileView(TComponent* Owner) : TVirtualStringTree(Owner) {
 	NodeDataSize = sizeof(int);
 	Files = new TFileObjectArray;
 	Files->compare = CompareProc;
-	Attribute = faDirectory | faAnyFile;
+	Attribute = FILE_ATTRIBUTE_DIRECTORY | FILE_ATTRIBUTE_ARCHIVE;
 	nIconSize = 16;
 	hiddenColor = (TColor)0x555555;
 	onDirChange = NULL;
@@ -142,7 +143,6 @@ __fastcall TFileView::TFileView(TComponent* Owner) : TVirtualStringTree(Owner) {
 	mi->OnClick = onDropAction;
 	popDrop->Items->Add(mi);
 }
-
 // ---------------------------------------------------------------------------
 __fastcall TFileView::~TFileView() {
 	if(DirMon) {
@@ -250,7 +250,7 @@ DWORD TFileView::EnumFiles()
 		return 0;
 
 	Files->clear();
-	TStorageItems storageItems = storage->getItems(Directory, Attribute);
+	TStorageItems storageItems = storage->getItems(Directory, mShowHiddenFiles);
 	for (int i = 0; i < storageItems.count(); i++) {
 		TFileObject *fobj = Files->add();
 		TStorageItem &storageItem = storageItems[i];
@@ -1674,3 +1674,9 @@ void __fastcall TFileView::CMMouseLeave(Winapi::Messages::TMessage &Message)
 	TWindow(getParentForm()->Handle).NoActivate = false;
 }
 //---------------------------------------------------------------------------
+void TFileView::showHiddenFiles(bool value)
+{
+	mShowHiddenFiles = value;
+}
+// ---------------------------------------------------------------------------
+

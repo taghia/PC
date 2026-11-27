@@ -92,6 +92,7 @@ __published:	// IDE-managed Components
 	TAction *actGroupRename;
 	TAction *actInternalDelete;
 	TTimer *MakeContextMenuNoActivate;
+	TToolButton *btnHidden;
 	void __fastcall FormResize(TObject *Sender);
 	void __fastcall driveRContextPopup(TObject *Sender, TPoint &MousePos, bool &Handled);
 	void __fastcall miCopyPathClick(TObject *Sender);
@@ -139,6 +140,7 @@ __published:	// IDE-managed Components
 	void __fastcall actGroupRenameExecute(TObject *Sender);
 	void __fastcall actInternalDeleteExecute(TObject *Sender);
 	void __fastcall MakeContextMenuNoActivateTimer(TObject *Sender);
+	void __fastcall btnHiddenClick(TObject *Sender);
 
 private:	// User declarations
 	MESSAGE void __fastcall WMDeviceChange(TMessage &msg);
